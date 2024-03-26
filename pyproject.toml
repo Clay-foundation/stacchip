@@ -26,4 +26,5 @@ dependencies = [
 dev = [
     "ruff",
     "pytest",
+    "mock",
 ]

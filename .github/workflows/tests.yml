@@ -22,7 +22,7 @@ jobs:
           python -m pip install -e .[dev]
       - name: Lint with ruff
         run: |
-          ruff --format=github --ignore=E501,E722,E731 .
+          ruff .
       - name: Test with pytest
         run: |
           pytest

@@ -4,9 +4,10 @@ from typing import Tuple
 
 import numpy as np
 import pyarrow as pa
+import rasterio
 from pystac import Item
 from rasterio.crs import CRS
-import rasterio
+from rasterio.enums import Resampling
 
 warnings.filterwarnings(
     "ignore",
@@ -45,9 +46,7 @@ class ChipIndexer:
             shape = self.item.properties["proj:shape"]
         else:
             for asset in self.item.assets.values():
-                if (
-                    "proj:shape" not in asset.extra_fields
-                ):
+                if "proj:shape" not in asset.extra_fields:
                     continue
 
                 if shape is None or shape[0] < asset.extra_fields["proj:shape"][0]:
@@ -115,7 +114,7 @@ class LandsatIndexer(ChipIndexer):
                 "qa_pixel"
             ].extra_fields["alternate"]["s3"]["href"]
             with rasterio.open(self.item.assets["qa_pixel"].href) as src:
-                self._qa = src.read()
+                self._qa = src.read(1)
         return self._qa
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
@@ -151,7 +150,10 @@ class Sentinel2Indexer(ChipIndexer):
         if self._scl is None:
             print("Loading scl band")
             with rasterio.open(self.item.assets["scl"].href) as src:
-                self._scl = src.read()
+                self._scl = src.read(
+                    out_shape=(1, *self.get_shape()), resampling=Resampling.bilinear
+                )[0]
+
         return self._scl
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
