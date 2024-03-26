@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "stacchip"
+version = "0.1.0"
+authors = [
+  { name="Daniel Wiesmann", email="danielwiesmann@developmentseed.org" },
+]
+description = "Dynamically create image chips from STAC items"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pystac",
+    "pyarrow",
+    "rasterio",
+    "numpy",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Clay-foundation/stacchip"
+"Bug Tracker" = "https://github.com/Clay-foundation/stacchip/issues"
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "pytest",
+]
