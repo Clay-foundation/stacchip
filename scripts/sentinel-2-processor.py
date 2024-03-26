@@ -31,10 +31,6 @@ data = gp.read_file("https://clay-mgrs-samples.s3.amazonaws.com/mgrs_sample_v02.
 catalog = pystac_client.Client.open(STAC_API)
 s3 = boto3.resource("s3")
 
-wd = Path("~/Desktop/clay-v1-sentinel-2-items").expanduser()
-assert wd.exists()
-
-
 quartals = [
     "{year}-01-01/{year}-03-31",
     "{year}-04-01/{year}-06-30",
