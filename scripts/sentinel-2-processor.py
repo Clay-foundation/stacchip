@@ -38,8 +38,6 @@ quartals = [
     "{year}-10-01/{year}-12-31",
 ]
 
-all_scenes = []
-
 for id, row in data.iterrows():
     print("ROW", row["name"])
     for year in ["2019", "2021", "2023"]:
@@ -59,8 +57,8 @@ for id, row in data.iterrows():
             )
             item = items.item_collection()[0]
 
-            if item.properties["eo:cloud_cover"] < ABSOLUTE_CLOUD_COVER_FILTER:
-                all_scenes.append(item)
+            if item.properties["eo:cloud_cover"] > ABSOLUTE_CLOUD_COVER_FILTER:
+                continue
 
             for key in list(item.assets.keys()):
                 if key not in S2_ASSETS:
@@ -94,7 +92,5 @@ for id, row in data.iterrows():
 
             s3_bucket.put_object(Body=body, Key=f"sentinel-2-l2a/{item.id}/chip_index.parquet")
             break
-
-        print([dat.properties["eo:cloud_cover"] for dat in all_scenes[-4:]])
         break
     break
