@@ -70,7 +70,7 @@ for id, row in data.iterrows():
                     new_key = (
                         f"sentinel-2-l2a/{item.id}/{Path(item.assets[key].href).name}"
                     )
-                    # s3.meta.client.copy(copy_source, V1_BUCKET, new_key)
+                    s3.meta.client.copy(copy_source, V1_BUCKET, new_key)
                     item.assets[key].href = f"s3://{V1_BUCKET}/{new_key}"
 
             # Convert Dictionary to JSON String
