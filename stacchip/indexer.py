@@ -55,7 +55,6 @@ class ChipIndexer:
         if shape is None:
             raise ValueError("Could not determine shape and resolution")
 
-        print(f"Shape is {shape}")
         return shape
 
     def get_stats(self, chip_index_x: int, chip_index_y: int) -> Tuple[float, float]:
