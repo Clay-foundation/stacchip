@@ -4,6 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import pyarrow as pa
+import geoarrow.pyarrow as ga
 import rasterio
 from pystac import Item
 from rasterio.crs import CRS
@@ -89,6 +90,9 @@ class ChipIndexer:
                 if x + self.chip_size > self.shape[1]:
                     continue
                 cloud_cover_percentage, nodata_percentage = self.get_stats(x, y)
+                xmin, ymin, xmax, ymax = self.get_bbox(x, y)
+                # print(ga.as_geoarrow(f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"))
+
                 row = [
                     f"{self.item.id}-{x}-{y}",
                     Path(self.item.get_self_href()).name,
@@ -97,7 +101,11 @@ class ChipIndexer:
                     y,
                     cloud_cover_percentage,
                     nodata_percentage,
-                    *self.get_bbox(x, y),
+                    xmin,
+                    ymin,
+                    xmax,
+                    ymax,
+                    f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))",
                 ]
                 index.append(row)
 
@@ -114,6 +122,7 @@ class ChipIndexer:
                 pa.array([dat[8] for dat in index], type=pa.float32()),  # bbox y min
                 pa.array([dat[9] for dat in index], type=pa.float32()),  # bbox x max
                 pa.array([dat[10] for dat in index], type=pa.float32()),  # bbox y max
+                ga.as_geoarrow([dat[11] for dat in index]),  # geoarrow bbox
             ],
             names=[
                 "chipid",
@@ -127,6 +136,7 @@ class ChipIndexer:
                 "bbox_y_min",
                 "bbox_x_max",
                 "bbox_y_max",
+                "geometry",
             ],
         )
 
