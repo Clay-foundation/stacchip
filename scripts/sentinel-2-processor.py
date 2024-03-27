@@ -6,8 +6,8 @@ from urllib.parse import urlparse
 import boto3
 import geopandas as gp
 import pyarrow as pa
-import pyarrow.parquet as pq
 import pystac_client
+from geoarrow.pyarrow import io
 
 from stacchip.indexer import Sentinel2Indexer
 
@@ -51,7 +51,7 @@ def process_mgrs_tile() -> None:
     for year in ["2019", "2021", "2023"]:
         print(f"Year {year}")
         for quartal in quartals:
-            print(f"Quartal {quartal.format(year)}")
+            print(f"Quartal {quartal.format(year=year)}")
             items = catalog.search(
                 collections=["sentinel-2-l2a"],
                 datetime=quartal.format(year=year),
@@ -84,7 +84,7 @@ def process_mgrs_tile() -> None:
                     new_key = (
                         f"sentinel-2-l2a/{item.id}/{Path(item.assets[key].href).name}"
                     )
-                    s3.meta.client.copy(copy_source, V1_BUCKET, new_key)
+                    # s3.meta.client.copy(copy_source, V1_BUCKET, new_key)
                     item.assets[key].href = f"s3://{V1_BUCKET}/{new_key}"
 
             # Convert Dictionary to JSON String
@@ -101,7 +101,8 @@ def process_mgrs_tile() -> None:
             index = indexer.create_index()
 
             writer = pa.BufferOutputStream()
-            pq.write_table(index, writer)
+            io.write_geoparquet_table(index, writer)
+            # pq.write_table(index, writer)
             body = bytes(writer.getvalue())
 
             s3_bucket.put_object(

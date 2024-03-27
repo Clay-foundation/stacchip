@@ -1,10 +1,9 @@
 import warnings
-from pathlib import Path
 from typing import Tuple
 
+import geoarrow.pyarrow as ga
 import numpy as np
 import pyarrow as pa
-import geoarrow.pyarrow as ga
 import rasterio
 from pystac import Item
 from rasterio.crs import CRS
@@ -81,8 +80,21 @@ class ChipIndexer:
         ]
 
     def create_index(self) -> None:
-        index = []
-
+        length = int(
+            np.floor(self.shape[0] / self.chip_size)
+            * np.floor(self.shape[1] / self.chip_size)
+        )
+        index = {
+            "chipid": np.empty(length, dtype="<U256"),
+            "stac_item": np.empty(length, dtype="<U256"),
+            "date": np.empty(length, dtype="datetime64[D]"),
+            "chip_index_x": np.empty(length, dtype="uint16"),
+            "chip_index_y": np.empty(length, dtype="uint16"),
+            "cloud_cover_percentage": np.empty(length, dtype="float32"),
+            "nodata_percentage": np.empty(length, dtype="float32"),
+            "geometry": np.empty(length, dtype="object"),
+        }
+        counter = 0
         for y in range(0, self.shape[0] - (self.chip_size - 1), self.chip_size):
             if y + self.chip_size > self.shape[0]:
                 continue
@@ -92,53 +104,22 @@ class ChipIndexer:
                 cloud_cover_percentage, nodata_percentage = self.get_stats(x, y)
                 xmin, ymin, xmax, ymax = self.get_bbox(x, y)
                 # print(ga.as_geoarrow(f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"))
+                index["chipid"][counter] = f"{self.item.id}-{x}-{y}"
+                index["stac_item"][counter] = self.item.datetime.date()
+                index["date"][counter] = self.item.datetime.date()
+                index["chip_index_x"][counter] = x
+                index["chip_index_y"][counter] = y
+                index["cloud_cover_percentage"][counter] = cloud_cover_percentage
+                index["nodata_percentage"][counter] = nodata_percentage
+                index["geometry"][
+                    counter
+                ] = f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"
 
-                row = [
-                    f"{self.item.id}-{x}-{y}",
-                    Path(self.item.get_self_href()).name,
-                    self.item.datetime.date(),
-                    x,
-                    y,
-                    cloud_cover_percentage,
-                    nodata_percentage,
-                    xmin,
-                    ymin,
-                    xmax,
-                    ymax,
-                    f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))",
-                ]
-                index.append(row)
+                counter += 1
 
-        return pa.table(
-            [
-                pa.array([dat[0] for dat in index], type=pa.string()),  # chip id
-                pa.array([dat[1] for dat in index], type=pa.string()),  # stac item link
-                pa.array([dat[2] for dat in index], type=pa.date32()),  # image date
-                pa.array([dat[3] for dat in index], type=pa.int16()),  # chip index x
-                pa.array([dat[4] for dat in index], type=pa.int16()),  # chip index y
-                pa.array([dat[5] for dat in index], type=pa.float32()),  # cloud cover
-                pa.array([dat[6] for dat in index], type=pa.float32()),  # nodata %
-                pa.array([dat[7] for dat in index], type=pa.float32()),  # bbox x min
-                pa.array([dat[8] for dat in index], type=pa.float32()),  # bbox y min
-                pa.array([dat[9] for dat in index], type=pa.float32()),  # bbox x max
-                pa.array([dat[10] for dat in index], type=pa.float32()),  # bbox y max
-                ga.as_geoarrow([dat[11] for dat in index]),  # geoarrow bbox
-            ],
-            names=[
-                "chipid",
-                "stac_item",
-                "date",
-                "chip_index_x",
-                "chip_index_y",
-                "cloud_cover_percentage",
-                "nodata_percentage",
-                "bbox_x_min",
-                "bbox_y_min",
-                "bbox_x_max",
-                "bbox_y_max",
-                "geometry",
-            ],
-        )
+        index["geometry"] = ga.as_geoarrow(index["geometry"])
+
+        return pa.table(index)
 
 
 class NoStatsChipIndexer(ChipIndexer):
