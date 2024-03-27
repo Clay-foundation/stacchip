@@ -1,11 +1,12 @@
+import json
+import os
 from pathlib import Path
 from urllib.parse import urlparse
-import json
 
-import pyarrow as pa
-import pyarrow.parquet as pq
 import boto3
 import geopandas as gp
+import pyarrow as pa
+import pyarrow.parquet as pq
 import pystac_client
 
 from stacchip.indexer import Sentinel2Indexer
@@ -27,10 +28,6 @@ S2_ASSETS = [
 ABSOLUTE_CLOUD_COVER_FILTER = 0.75
 V1_BUCKET = "clay-v1-data"
 
-data = gp.read_file("https://clay-mgrs-samples.s3.amazonaws.com/mgrs_sample_v02.fgb")
-catalog = pystac_client.Client.open(STAC_API)
-s3 = boto3.resource("s3")
-
 quartals = [
     "{year}-01-01/{year}-03-31",
     "{year}-04-01/{year}-06-30",
@@ -38,11 +35,23 @@ quartals = [
     "{year}-10-01/{year}-12-31",
 ]
 
-for id, row in data.iterrows():
-    print("ROW", row["name"])
+
+def process_mgrs_tile() -> None:
+
+    # Prepare resources for the job
+    index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX", 1))
+    catalog = pystac_client.Client.open(STAC_API)
+    s3 = boto3.resource("s3")
+    data = gp.read_file(
+        "https://clay-mgrs-samples.s3.amazonaws.com/mgrs_sample_v02.fgb"
+    )
+    row = data.iloc[index]
+
+    print("MGRS", row["name"])
     for year in ["2019", "2021", "2023"]:
-        print(f"YEAR {year}")
+        print(f"Year {year}")
         for quartal in quartals:
+            print(f"Quartal {quartal.format(year)}")
             items = catalog.search(
                 collections=["sentinel-2-l2a"],
                 datetime=quartal.format(year=year),
@@ -60,12 +69,17 @@ for id, row in data.iterrows():
             if item.properties["eo:cloud_cover"] > ABSOLUTE_CLOUD_COVER_FILTER:
                 continue
 
+            print(f"Cloud cover is {item.properties['eo:cloud_cover']}")
+
             for key in list(item.assets.keys()):
                 if key not in S2_ASSETS:
                     del item.assets[key]
                 else:
                     url = urlparse(item.assets[key].href)
-                    copy_source = {"Bucket": "sentinel-cogs", "Key": url.path.lstrip("/")}
+                    copy_source = {
+                        "Bucket": "sentinel-cogs",
+                        "Key": url.path.lstrip("/"),
+                    }
                     print(f"Copying {copy_source}")
                     new_key = (
                         f"sentinel-2-l2a/{item.id}/{Path(item.assets[key].href).name}"
@@ -90,7 +104,12 @@ for id, row in data.iterrows():
             pq.write_table(index, writer)
             body = bytes(writer.getvalue())
 
-            s3_bucket.put_object(Body=body, Key=f"sentinel-2-l2a/{item.id}/chip_index.parquet")
+            s3_bucket.put_object(
+                Body=body, Key=f"sentinel-2-l2a/{item.id}/chip_index.parquet"
+            )
             break
         break
-    break
+
+
+if __name__ == "__main__":
+    process_mgrs_tile()

@@ -1,3 +1,5 @@
+import datetime
+
 import mock
 import numpy
 import pyarrow as pa
@@ -54,9 +56,22 @@ def rasterio_open_sentinel_mock(href: str) -> numpy.ndarray:
 def test_no_stats_indexer():
     item = Item.from_file("tests/data/naip_m_4207009_ne_19_060_20211024.json")
     indexer = NoStatsChipIndexer(item)
-    assert indexer.get_shape() == [12666, 9704]
+    assert indexer.shape == [12666, 9704]
     index = indexer.create_index()
     assert str(index.column("chipid")[0]) == "m_4207009_ne_19_060_20211024.tif-0-0"
+    assert index.column("date")[0] == pa.scalar(
+        datetime.date(2021, 10, 24), pa.date32()
+    )
+    assert index.column("bbox_x_max")[0] == index.column("bbox_x_min")[1]
+    assert index.column("bbox_y_min")[0] == index.column("bbox_y_min")[1]
+    assert (
+        index.column("bbox_y_max")[0]
+        != index.column("bbox_y_min")[int(indexer.shape[1] / indexer.chip_size) - 1]
+    )
+    assert (
+        index.column("bbox_y_max")[0]
+        == index.column("bbox_y_min")[int(indexer.shape[1] / indexer.chip_size)]
+    )
 
 
 @mock.patch("stacchip.indexer.rasterio.open", rasterio_open_sentinel_mock)
@@ -65,7 +80,7 @@ def test_sentinel_2_indexer():
         "tests/data/sentinel-2-l2a-S2A_T20HNJ_20240311T140636_L2A.json"
     )
     indexer = Sentinel2Indexer(item)
-    assert indexer.get_shape() == [10980, 10980]
+    assert indexer.shape == [10980, 10980]
     index = indexer.create_index()
     assert str(index.column("chipid")[0]) == "S2A_T20HNJ_20240311T140636_L2A-0-0"
 
@@ -76,7 +91,7 @@ def test_landsat_indexer():
         "tests/data/landsat-c2l2-sr-LC09_L2SR_086107_20240311_20240312_02_T2_SR.json"
     )
     indexer = LandsatIndexer(item)
-    assert indexer.get_shape() == [8271, 8331]
+    assert indexer.shape == [8271, 8331]
     index = indexer.create_index()
     assert isinstance(index, pa.Table)
     assert (
