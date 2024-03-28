@@ -78,14 +78,21 @@ def test_no_stats_indexer():
     assert index.column("date")[0] == pa.scalar(
         datetime.date(2021, 10, 24), pa.date32()
     )
-    print(index.column("geometry")[0].wkt)
-    assert (
-        index.column("geometry")[0].wkt
-        == "POLYGON ((-70.94268962889282 42.80920310538916, -70.94070808681735 42.80920310538916, -70.94070808681735 42.8106232038024, -70.94268962889282 42.8106232038024, -70.94268962889282 42.80920310538916))"
-    )
     assert (
         min([dat["x"] for dat in index.column("geometry")[0].as_py()[0]])
         == item.bbox[0]
+    )
+    assert (
+        max([dat["y"] for dat in index.column("geometry")[0].as_py()[0]])
+        == item.bbox[3]
+    )
+    assert (
+        max([dat["x"] for dat in index.column("geometry")[-1].as_py()[0]])
+        == item.bbox[2]
+    )
+    assert (
+        min([dat["y"] for dat in index.column("geometry")[-1].as_py()[0]])
+        == item.bbox[1]
     )
 
 

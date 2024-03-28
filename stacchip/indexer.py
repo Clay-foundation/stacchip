@@ -85,9 +85,9 @@ class ChipIndexer:
         lat_size = (self.item.bbox[3] - self.item.bbox[1]) / self.y_size
 
         xmin = self.item.bbox[0] + x * lon_size
-        ymin = self.item.bbox[1] + y * lat_size
+        ymin = self.item.bbox[3] - y * lat_size
         xmax = self.item.bbox[0] + (x + 1) * lon_size
-        ymax = self.item.bbox[1] + (y + 1) * lat_size
+        ymax = self.item.bbox[3] - (y + 1) * lat_size
 
         return f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"
 
