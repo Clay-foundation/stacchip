@@ -108,6 +108,6 @@ def process_mgrs_tile(index) -> None:
                 Body=body, Key=f"sentinel-2-l2a/{item.id}/chip_index.parquet"
             )
 
-def main():
+def process():
     index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX", 100))
     process_mgrs_tile(index)
