@@ -30,3 +30,7 @@ dev = [
     "mock",
     "build",
 ]
+
+
+[project.scripts]
+stacchip-sentinel-2 = "processors.sentinel-2-processors:main"
