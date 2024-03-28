@@ -1,5 +1,6 @@
 import json
 import os
+import random
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -36,10 +37,8 @@ quartals = [
 ]
 
 
-def process_mgrs_tile() -> None:
-
+def process_mgrs_tile(index) -> None:
     # Prepare resources for the job
-    index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX", 1))
     catalog = pystac_client.Client.open(STAC_API)
     s3 = boto3.resource("s3")
     data = gp.read_file(
@@ -48,7 +47,8 @@ def process_mgrs_tile() -> None:
     row = data.iloc[index]
 
     print("MGRS", row["name"])
-    for year in ["2019", "2021", "2023"]:
+    random.seed(index)
+    for year in random.sample(range(2018, 2023), 2):
         print(f"Year {year}")
         for quartal in quartals:
             print(f"Quartal {quartal.format(year=year)}")
@@ -102,15 +102,13 @@ def process_mgrs_tile() -> None:
 
             writer = pa.BufferOutputStream()
             io.write_geoparquet_table(index, writer)
-            # pq.write_table(index, writer)
             body = bytes(writer.getvalue())
 
             s3_bucket.put_object(
                 Body=body, Key=f"sentinel-2-l2a/{item.id}/chip_index.parquet"
             )
-            break
-        break
 
 
 if __name__ == "__main__":
-    process_mgrs_tile()
+    index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX", 100))
+    process_mgrs_tile(index)
