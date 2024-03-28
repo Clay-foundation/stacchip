@@ -1,7 +1,7 @@
 import datetime
 
 import mock
-import numpy
+import numpy as np
 import pyarrow as pa
 import pytest
 from pystac import Item
@@ -12,14 +12,7 @@ from stacchip.indexer import (ChipIndexer, LandsatIndexer, NoStatsChipIndexer,
                               Sentinel2Indexer)
 
 
-def test_get_stats_error():
-    item = Item.from_file("tests/data/naip_m_4207009_ne_19_060_20211024.json")
-    indexer = ChipIndexer(item)
-    with pytest.raises(NotImplementedError):
-        indexer.create_index()
-
-
-def rasterio_open_ls_mock(href: str) -> numpy.ndarray:
+def get_ls_mock(nodata: bool=False) -> MemoryFile:
     meta = {
         "driver": "GTiff",
         "dtype": "uint16",
@@ -30,13 +23,22 @@ def rasterio_open_ls_mock(href: str) -> numpy.ndarray:
         "crs": "EPSG:3031",
         "transform": Affine(30.0, 0.0, 1517085.0, 0.0, -30.0, -1811685.0),
     }
+    length = 8331 * 8271
+    data = np.zeros((1, 8331, 8271))
+    data[0, :200, :200] = 1
     memfile = MemoryFile()
     with memfile.open(**meta) as dst:
-        dst.write(numpy.ones((1, 8331, 8271), dtype="uint16"))
+        dst.write(data)
     return memfile.open()
 
 
-def rasterio_open_sentinel_mock(href: str) -> numpy.ndarray:
+def rasterio_open_ls_mock(href: str) -> MemoryFile:
+    return get_ls_mock()
+
+def rasterio_open_ls_nodata_mock(href: str) -> MemoryFile:
+    return get_ls_mock(True)
+
+def rasterio_open_sentinel_mock(href: str) -> MemoryFile:
     meta = {
         "driver": "GTiff",
         "dtype": "uint8",
@@ -49,8 +51,15 @@ def rasterio_open_sentinel_mock(href: str) -> numpy.ndarray:
     }
     memfile = MemoryFile()
     with memfile.open(**meta) as dst:
-        dst.write(5 * numpy.ones((1, 5490, 5490), dtype="uint16"))
+        dst.write(5 * np.ones((1, 5490, 5490), dtype="uint16"))
     return memfile.open()
+
+
+def test_get_stats_error():
+    item = Item.from_file("tests/data/naip_m_4207009_ne_19_060_20211024.json")
+    indexer = ChipIndexer(item)
+    with pytest.raises(NotImplementedError):
+        indexer.create_index()
 
 
 def test_no_stats_indexer():
@@ -77,6 +86,7 @@ def test_sentinel_2_indexer():
     assert indexer.shape == [10980, 10980]
     index = indexer.create_index()
     assert str(index.column("chipid")[0]) == "S2A_T20HNJ_20240311T140636_L2A-0-0"
+    assert index.shape == (1764, 8)
 
 
 @mock.patch("stacchip.indexer.rasterio.open", rasterio_open_ls_mock)
@@ -92,3 +102,18 @@ def test_landsat_indexer():
         str(index.column("chipid")[0])
         == "LC09_L2SR_086107_20240311_20240312_02_T2_SR-0-0"
     )
+    assert index.shape == (1024, 8)
+
+
+@mock.patch("stacchip.indexer.rasterio.open", rasterio_open_ls_nodata_mock)
+def test_landsat_indexer_nodata():
+    item = Item.from_file(
+        "tests/data/landsat-c2l2-sr-LC09_L2SR_086107_20240311_20240312_02_T2_SR.json"
+    )
+    indexer = LandsatIndexer(item)
+    index = indexer.create_index()
+    assert index.shape == (1023, 8)
+
+    indexer = LandsatIndexer(item, chip_max_nodata=0.95)
+    index = indexer.create_index()
+    assert index.shape == (1024, 8)

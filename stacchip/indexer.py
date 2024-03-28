@@ -4,6 +4,7 @@ from typing import Tuple
 import geoarrow.pyarrow as ga
 import numpy as np
 import pyarrow as pa
+import pyarrow.compute as pc
 import rasterio
 from pystac import Item
 from rasterio.crs import CRS
@@ -23,12 +24,11 @@ warnings.filterwarnings(
 class ChipIndexer:
 
     def __init__(
-        self,
-        item: Item,
-        chip_size: int = 256,
+        self, item: Item, chip_size: int = 256, chip_max_nodata: float = 0.5
     ) -> None:
         self.item = item
         self.chip_size = chip_size
+        self.chip_max_nodata = chip_max_nodata
 
         assert self.item.ext.has("proj")
         self.assert_units_metre()
@@ -69,15 +69,14 @@ class ChipIndexer:
     def get_stats(self, chip_index_x: int, chip_index_y: int) -> Tuple[float, float]:
         raise NotImplementedError()
 
-    def get_bbox(
-        self, chip_index_x: int, chip_index_y: int
-    ) -> Tuple[float, float, float, float]:
-        return [
-            self.item.bbox[0] + chip_index_x * self.x_pixel_size,
-            self.item.bbox[1] + chip_index_y * self.y_pixel_size,
-            self.item.bbox[0] + (chip_index_x + self.chip_size) * self.x_pixel_size,
-            self.item.bbox[1] + (chip_index_y + self.chip_size) * self.y_pixel_size,
-        ]
+    def get_bbox(self, chip_index_x: int, chip_index_y: int) -> str:
+
+        xmin = self.item.bbox[0] + chip_index_x * self.x_pixel_size
+        ymin = self.item.bbox[1] + chip_index_y * self.y_pixel_size
+        xmax = self.item.bbox[0] + (chip_index_x + self.chip_size) * self.x_pixel_size
+        ymax = self.item.bbox[1] + (chip_index_y + self.chip_size) * self.y_pixel_size
+
+        return f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"
 
     def create_index(self) -> None:
         length = int(
@@ -102,8 +101,7 @@ class ChipIndexer:
                 if x + self.chip_size > self.shape[1]:
                     continue
                 cloud_cover_percentage, nodata_percentage = self.get_stats(x, y)
-                xmin, ymin, xmax, ymax = self.get_bbox(x, y)
-                # print(ga.as_geoarrow(f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"))
+
                 index["chipid"][counter] = f"{self.item.id}-{x}-{y}"
                 index["stac_item"][counter] = self.item.datetime.date()
                 index["date"][counter] = self.item.datetime.date()
@@ -111,15 +109,15 @@ class ChipIndexer:
                 index["chip_index_y"][counter] = y
                 index["cloud_cover_percentage"][counter] = cloud_cover_percentage
                 index["nodata_percentage"][counter] = nodata_percentage
-                index["geometry"][
-                    counter
-                ] = f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"
+                index["geometry"][counter] = self.get_bbox(x, y)
 
                 counter += 1
 
         index["geometry"] = ga.as_geoarrow(index["geometry"])
 
-        return pa.table(index)
+        table = pa.table(index)
+        table = table.filter(pc.field("nodata_percentage") < self.chip_max_nodata)
+        return table
 
 
 class NoStatsChipIndexer(ChipIndexer):
