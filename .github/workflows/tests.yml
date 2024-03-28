@@ -22,7 +22,7 @@ jobs:
           python -m pip install -e .[dev]
       - name: Lint with ruff
         run: |
-          ruff .
+          ruff check .
       - name: Test with pytest
         run: |
           pytest
