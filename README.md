@@ -1,5 +1,30 @@
 # stacchip
+
 Dynamically create image chips from STAC items
+
+## The indexer
+
+The indexer class is build to create a chip index based on only a STAC
+item as input. The indexer will calculate the number of available chips
+given a chip size. The resulting chip index is returned as a geoparquet
+table.
+
+The index also calculates cloud cover and nodata percentages for each tile.
+This is specific for each system. So the base class has to be subclassed
+and the `get_stats` method overridden to produce the right statistics.
+
+The following example creates an index the Landsat-9 STAC item from the tests
+
+```python
+from pystac import Item
+from stacchip.indexer import LandsatIndexer
+
+item = Item.from_file(
+    "tests/data/landsat-c2l2-sr-LC09_L2SR_086107_20240311_20240312_02_T2_SR.json"
+)
+indexer = LandsatIndexer(item)
+index = indexer.create_index()
+```
 
 ## Processors
 
@@ -31,12 +56,7 @@ export STACCHIP_BUCKET=clay-v1-data
 The following base image can be used for batch processing.
 
 ```dockerfile
-FROM ubuntu:jammy
+FROM python:3.11
 
-RUN apt update -y
-RUN apt upgrade -y
-
-RUN apt install -y python3-pip
-
-RUN pip install https://github.com/Clay-foundation/stacchip/archive/refs/heads/main.zip
+RUN pip install https://github.com/Clay-foundation/stacchip/archive/refs/tags/0.1.1.zip
 ```
