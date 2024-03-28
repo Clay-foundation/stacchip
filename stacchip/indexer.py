@@ -116,7 +116,11 @@ class ChipIndexer:
         index["geometry"] = ga.as_geoarrow(index["geometry"])
 
         table = pa.table(index)
+        chips_count = table.shape[0]
         table = table.filter(pc.field("nodata_percentage") < self.chip_max_nodata)
+        print(
+            f"Dropped {chips_count - table.shape[0]}/{chips_count} chips due to nodata above {self.chip_max_nodata}"
+        )
         return table
 
 
@@ -173,7 +177,7 @@ class Sentinel2Indexer(ChipIndexer):
             print("Loading scl band")
             with rasterio.open(self.item.assets["scl"].href) as src:
                 self._scl = src.read(
-                    out_shape=(1, *self.shape), resampling=Resampling.bilinear
+                    out_shape=(1, *self.shape), resampling=Resampling.nearest
                 )[0]
 
         return self._scl
