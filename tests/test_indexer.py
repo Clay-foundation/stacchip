@@ -78,9 +78,14 @@ def test_no_stats_indexer():
     assert index.column("date")[0] == pa.scalar(
         datetime.date(2021, 10, 24), pa.date32()
     )
+    print(index.column("geometry")[0].wkt)
     assert (
         index.column("geometry")[0].wkt
-        == "POLYGON ((-70.94268962889282 42.80920310538916, -70.94075546086532 42.80920310538916, -70.94075546086532 42.8106095252925, -70.94268962889282 42.8106095252925, -70.94268962889282 42.80920310538916))"
+        == "POLYGON ((-70.94268962889282 42.80920310538916, -70.94070808681735 42.80920310538916, -70.94070808681735 42.8106232038024, -70.94268962889282 42.8106232038024, -70.94268962889282 42.80920310538916))"
+    )
+    assert (
+        min([dat["x"] for dat in index.column("geometry")[0].as_py()[0]])
+        == item.bbox[0]
     )
 
 
@@ -93,7 +98,7 @@ def test_sentinel_2_indexer():
     assert indexer.shape == [10980, 10980]
     index = indexer.create_index()
     assert index.shape == (1763, 8)
-    assert str(index.column("chipid")[0]) == "S2A_T20HNJ_20240311T140636_L2A-256-0"
+    assert str(index.column("chipid")[0]) == "S2A_T20HNJ_20240311T140636_L2A-1-0"
     assert index.column("cloud_cover_percentage")[0].as_py() == 0.5
 
 
@@ -123,7 +128,7 @@ def test_landsat_indexer_nodata():
     assert index.shape == (1023, 8)
     assert (
         str(index.column("chipid")[0])
-        == "LC09_L2SR_086107_20240311_20240312_02_T2_SR-256-0"
+        == "LC09_L2SR_086107_20240311_20240312_02_T2_SR-1-0"
     )
 
     indexer = LandsatIndexer(item, chip_max_nodata=0.95)

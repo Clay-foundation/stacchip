@@ -1,4 +1,5 @@
 import warnings
+from math import floor
 from typing import Tuple
 
 import geoarrow.pyarrow as ga
@@ -33,9 +34,6 @@ class ChipIndexer:
         assert self.item.ext.has("proj")
         self.assert_units_metre()
 
-        self.x_pixel_size = (self.item.bbox[2] - self.item.bbox[0]) / self.shape[1]
-        self.y_pixel_size = (self.item.bbox[3] - self.item.bbox[1]) / self.shape[0]
-
     def assert_units_metre(self) -> None:
         crs = CRS(init=f"EPSG:{self.item.properties['proj:epsg']}")
         assert crs.linear_units == "metre"
@@ -66,40 +64,48 @@ class ChipIndexer:
 
         return self._shape
 
+    @property
+    def x_size(self) -> int:
+        return floor(self.shape[1] / self.chip_size)
+
+    @property
+    def y_size(self) -> int:
+        return floor(self.shape[0] / self.chip_size)
+
+    @property
+    def size(self):
+        return self.x_size * self.y_size
+
     def get_stats(self, chip_index_x: int, chip_index_y: int) -> Tuple[float, float]:
         raise NotImplementedError()
 
-    def get_bbox(self, chip_index_x: int, chip_index_y: int) -> str:
+    def get_bbox(self, x: int, y: int) -> str:
 
-        xmin = self.item.bbox[0] + chip_index_x * self.x_pixel_size
-        ymin = self.item.bbox[1] + chip_index_y * self.y_pixel_size
-        xmax = self.item.bbox[0] + (chip_index_x + self.chip_size) * self.x_pixel_size
-        ymax = self.item.bbox[1] + (chip_index_y + self.chip_size) * self.y_pixel_size
+        lon_size = (self.item.bbox[2] - self.item.bbox[0]) / self.x_size
+        lat_size = (self.item.bbox[3] - self.item.bbox[1]) / self.y_size
+
+        xmin = self.item.bbox[0] + x * lon_size
+        ymin = self.item.bbox[1] + y * lat_size
+        xmax = self.item.bbox[0] + (x + 1) * lon_size
+        ymax = self.item.bbox[1] + (y + 1) * lat_size
 
         return f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"
 
     def create_index(self) -> None:
-        length = int(
-            np.floor(self.shape[0] / self.chip_size)
-            * np.floor(self.shape[1] / self.chip_size)
-        )
         index = {
-            "chipid": np.empty(length, dtype="<U256"),
-            "stac_item": np.empty(length, dtype="<U256"),
-            "date": np.empty(length, dtype="datetime64[D]"),
-            "chip_index_x": np.empty(length, dtype="uint16"),
-            "chip_index_y": np.empty(length, dtype="uint16"),
-            "cloud_cover_percentage": np.empty(length, dtype="float32"),
-            "nodata_percentage": np.empty(length, dtype="float32"),
-            "geometry": np.empty(length, dtype="object"),
+            "chipid": np.empty(self.size, dtype="<U256"),
+            "stac_item": np.empty(self.size, dtype="<U256"),
+            "date": np.empty(self.size, dtype="datetime64[D]"),
+            "chip_index_x": np.empty(self.size, dtype="uint16"),
+            "chip_index_y": np.empty(self.size, dtype="uint16"),
+            "cloud_cover_percentage": np.empty(self.size, dtype="float32"),
+            "nodata_percentage": np.empty(self.size, dtype="float32"),
+            "geometry": np.empty(self.size, dtype="object"),
         }
         counter = 0
-        for y in range(0, self.shape[0] - (self.chip_size - 1), self.chip_size):
-            if y + self.chip_size > self.shape[0]:
-                continue
-            for x in range(0, self.shape[1] - (self.chip_size - 1), self.chip_size):
-                if x + self.chip_size > self.shape[1]:
-                    continue
+        for y in range(0, self.y_size):
+            for x in range(0, self.x_size):
+
                 cloud_cover_percentage, nodata_percentage = self.get_stats(x, y)
 
                 index["chipid"][counter] = f"{self.item.id}-{x}-{y}"
@@ -144,7 +150,10 @@ class LandsatIndexer(ChipIndexer):
         return self._qa
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
-        qa = self.qa[y : (y + self.chip_size), x : (x + self.chip_size)]
+        qa = self.qa[
+            y * self.chip_size : (y + 1) * self.chip_size,
+            x * self.chip_size : (x + 1) * self.chip_size,
+        ]
 
         # Bit 1 is dilated cloud, 3 is cloud, 4 is cloud shadow.
         nodata_byte = np.array(1 << 0, dtype=qa.dtype)
@@ -183,7 +192,10 @@ class Sentinel2Indexer(ChipIndexer):
         return self._scl
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
-        scl = self.scl[y : (y + self.chip_size), x : (x + self.chip_size)]
+        scl = self.scl[
+            y * self.chip_size : (y + 1) * self.chip_size,
+            x * self.chip_size : (x + 1) * self.chip_size,
+        ]
 
         cloud_percentage = int(np.isin(scl, self.scl_filter).sum()) / scl.size
 
