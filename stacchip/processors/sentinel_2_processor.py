@@ -27,7 +27,6 @@ S2_ASSETS = [
     "swir22",
 ]
 ABSOLUTE_CLOUD_COVER_FILTER = 0.75
-V1_BUCKET = "clay-v1-data"
 
 quartals = [
     "{year}-01-01/{year}-03-31",
@@ -37,13 +36,11 @@ quartals = [
 ]
 
 
-def process_mgrs_tile(index) -> None:
+def process_mgrs_tile(index, mgrs_source, bucket) -> None:
     # Prepare resources for the job
     catalog = pystac_client.Client.open(STAC_API)
     s3 = boto3.resource("s3")
-    data = gp.read_file(
-        "https://clay-mgrs-samples.s3.amazonaws.com/mgrs_sample_v02.fgb"
-    )
+    data = gp.read_file(mgrs_source)
     row = data.iloc[index]
 
     print("MGRS", row["name"])
@@ -84,14 +81,14 @@ def process_mgrs_tile(index) -> None:
                     new_key = (
                         f"sentinel-2-l2a/{item.id}/{Path(item.assets[key].href).name}"
                     )
-                    s3.meta.client.copy(copy_source, V1_BUCKET, new_key)
-                    item.assets[key].href = f"s3://{V1_BUCKET}/{new_key}"
+                    s3.meta.client.copy(copy_source, bucket, new_key)
+                    item.assets[key].href = f"s3://{bucket}/{new_key}"
 
             # Convert Dictionary to JSON String
             data_string = json.dumps(item.to_dict())
 
             # Upload JSON String to an S3 Object
-            s3_bucket = s3.Bucket(name=V1_BUCKET)
+            s3_bucket = s3.Bucket(name=bucket)
             s3_bucket.put_object(
                 Key=f"sentinel-2-l2a/{item.id}/stac_item.json",
                 Body=data_string,
@@ -108,6 +105,18 @@ def process_mgrs_tile(index) -> None:
                 Body=body, Key=f"sentinel-2-l2a/{item.id}/chip_index.parquet"
             )
 
+
 def process():
-    index = int(os.environ.get("AWS_BATCH_JOB_ARRAY_INDEX", 100))
-    process_mgrs_tile(index)
+
+    if "AWS_BATCH_JOB_ARRAY_INDEX" not in os.environ:
+        raise ValueError("AWS_BATCH_JOB_ARRAY_INDEX env var not set")
+    if "STACCHIP_MGRS_SOURCE" not in os.environ:
+        raise ValueError("STACCHIP_MGRS_SOURCE env var not set")
+    if "STACCHIP_BUCKET" not in os.environ:
+        raise ValueError("STACCHIP_BUCKET env var not set")
+
+    index = int(os.environ["AWS_BATCH_JOB_ARRAY_INDEX"])
+    mgrs_source = os.environ["STACCHIP_MGRS_SOURCE"]
+    bucket = os.environ["STACCHIP_BUCKET"]
+
+    process_mgrs_tile(index, mgrs_source, bucket)
