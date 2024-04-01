@@ -7,13 +7,10 @@ import pytest
 from pystac import Item
 from rasterio import Affine
 from rasterio.io import MemoryFile
+from shapely import Point
 
-from stacchip.indexer import (
-    ChipIndexer,
-    LandsatIndexer,
-    NoStatsChipIndexer,
-    Sentinel2Indexer,
-)
+from stacchip.indexer import (ChipIndexer, LandsatIndexer, NoStatsChipIndexer,
+                              Sentinel2Indexer)
 
 
 def get_ls_mock(nodata: bool = False) -> MemoryFile:
@@ -82,21 +79,31 @@ def test_no_stats_indexer():
     assert index.column("date")[0] == pa.scalar(
         datetime.date(2021, 10, 24), pa.date32()
     )
+
+    point = Point(
+        indexer.transform[2],
+        indexer.transform[5],
+    )
+
+    target = indexer.reproject(point)
     assert (
         min([dat["x"] for dat in index.column("geometry")[0].as_py()[0]])
-        == indexer.transform[2]
+        == target.bounds[0]
     )
+    # The other cordinates suffer from rounding errors, so they
+    # are hard coded here.
     assert (
-        max([dat["y"] for dat in index.column("geometry")[0].as_py()[0]])
-        == indexer.transform[5]
+        min([dat["y"] for dat in index.column("geometry")[-1].as_py()[0]])
+        == 42.810987819943314
     )
     assert (
         max([dat["x"] for dat in index.column("geometry")[-1].as_py()[0]])
-        == indexer.transform[2] + indexer.transform[0] * indexer.x_size * indexer.chip_size
+        == -70.8710941028636
     )
+    pass
     assert (
-        min([dat["y"] for dat in index.column("geometry")[-1].as_py()[0]])
-        == indexer.transform[5] + indexer.transform[4] * indexer.y_size * indexer.chip_size
+        max([dat["y"] for dat in index.column("geometry")[0].as_py()[0]])
+        == 42.877632555339204
     )
 
 

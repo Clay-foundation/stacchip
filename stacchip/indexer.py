@@ -6,11 +6,13 @@ import geoarrow.pyarrow as ga
 import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
+import pyproj
 import rasterio
 from pystac import Item
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
 from shapely.geometry import box
+from shapely.ops import transform
 
 warnings.filterwarnings(
     "ignore",
@@ -33,11 +35,23 @@ class ChipIndexer:
         self.chip_max_nodata = chip_max_nodata
 
         assert self.item.ext.has("proj")
+
         self.assert_units_metre()
+        self.setup_projector()
 
     def assert_units_metre(self) -> None:
         crs = CRS(init=f"EPSG:{self.item.properties['proj:epsg']}")
         assert crs.linear_units == "metre"
+
+    def setup_projector(self):
+        wgs84 = pyproj.CRS("EPSG:4326")
+        target_crs = pyproj.CRS(f'EPSG:{self.item.properties["proj:epsg"]}')
+        self._projector = pyproj.Transformer.from_crs(
+            target_crs, wgs84, always_xy=True
+        ).transform
+
+    def reproject(self, geom) -> str:
+        return transform(self._projector, geom)
 
     _shape = None
     _transform = None
@@ -111,7 +125,7 @@ class ChipIndexer:
             self.bbox[3] + (y + 1) * self.transform[4] * self.chip_size,
         )
 
-        return chip_box.wkt
+        return self.reproject(chip_box).wkt
 
     def create_index(self) -> None:
         index = {
