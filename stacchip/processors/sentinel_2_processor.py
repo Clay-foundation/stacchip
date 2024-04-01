@@ -120,6 +120,3 @@ def process():
     bucket = os.environ["STACCHIP_BUCKET"]
 
     process_mgrs_tile(index, mgrs_source, bucket)
-
-
-process()
