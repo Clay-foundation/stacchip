@@ -7,7 +7,7 @@ import pytest
 from pystac import Item
 from rasterio import Affine
 from rasterio.io import MemoryFile
-from shapely import Point, box
+from shapely import Point
 
 from stacchip.indexer import (ChipIndexer, LandsatIndexer, NoStatsChipIndexer,
                               Sentinel2Indexer)
