@@ -20,6 +20,9 @@ dependencies = [
     "boto3",
     "geopandas",
 ]
+dynamic = [
+ "version",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/Clay-foundation/stacchip"
