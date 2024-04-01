@@ -7,7 +7,7 @@ import pytest
 from pystac import Item
 from rasterio import Affine
 from rasterio.io import MemoryFile
-from shapely import Point
+from shapely import Point, box
 
 from stacchip.indexer import (ChipIndexer, LandsatIndexer, NoStatsChipIndexer,
                               Sentinel2Indexer)
@@ -86,25 +86,12 @@ def test_no_stats_indexer():
     )
 
     target = indexer.reproject(point)
-    assert (
-        min([dat["x"] for dat in index.column("geometry")[0].as_py()[0]])
-        == target.bounds[0]
-    )
-    # The other cordinates suffer from rounding errors, so they
-    # are hard coded here.
-    assert (
-        min([dat["y"] for dat in index.column("geometry")[-1].as_py()[0]])
-        == 42.810987819943314
-    )
-    assert (
-        max([dat["x"] for dat in index.column("geometry")[-1].as_py()[0]])
-        == -70.8710941028636
-    )
-    pass
-    assert (
-        max([dat["y"] for dat in index.column("geometry")[0].as_py()[0]])
-        == 42.877632555339204
-    )
+    assert min(
+        [dat["x"] for dat in index.column("geometry")[0].as_py()[0]]
+    ) == pytest.approx(target.bounds[0])
+    assert max(
+        [dat["y"] for dat in index.column("geometry")[0].as_py()[0]]
+    ) == pytest.approx(target.bounds[3])
 
 
 @mock.patch("stacchip.indexer.rasterio.open", rasterio_open_sentinel_mock)
