@@ -10,6 +10,7 @@ import rasterio
 from pystac import Item
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
+from shapely.geometry import box
 
 warnings.filterwarnings(
     "ignore",
@@ -39,15 +40,23 @@ class ChipIndexer:
         assert crs.linear_units == "metre"
 
     _shape = None
+    _transform = None
 
     @property
-    def shape(self) -> list:
+    def transform(self) -> list:
+        if self._transform is None:
+            self.shape()
+        return self._transform
+
+    @property
+    def shape(self) -> Tuple[int, int]:
         """
         Get shape of hightest resolution band.
         """
         if self._shape is None:
             if "proj:shape" in self.item.properties:
                 self._shape = self.item.properties["proj:shape"]
+                self._transform = self.item.properties["proj:transform"]
             else:
                 for asset in self.item.assets.values():
                     if "proj:shape" not in asset.extra_fields:
@@ -58,6 +67,7 @@ class ChipIndexer:
                         or self._shape[0] < asset.extra_fields["proj:shape"][0]
                     ):
                         self._shape = asset.extra_fields["proj:shape"]
+                        self._transform = asset.extra_fields["proj:transform"]
 
             if self._shape is None:
                 raise ValueError("Could not determine shape and resolution")
@@ -73,28 +83,39 @@ class ChipIndexer:
         return floor(self.shape[0] / self.chip_size)
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self.x_size * self.y_size
+
+    _bbox = None
+
+    @property
+    def bbox(self) -> Tuple[float, float, float, float]:
+        if self._bbox is None:
+            self._bbox = (
+                self.transform[2],
+                self.transform[5] + self.transform[4] * self.shape[0],
+                self.transform[2] + self.transform[0] * self.shape[1],
+                self.transform[5],
+            )
+
+        return self._bbox
 
     def get_stats(self, chip_index_x: int, chip_index_y: int) -> Tuple[float, float]:
         raise NotImplementedError()
 
     def get_bbox(self, x: int, y: int) -> str:
+        chip_box = box(
+            self.bbox[0] + x * self.transform[0] * self.chip_size,
+            self.bbox[3] + y * self.transform[4] * self.chip_size,
+            self.bbox[0] + (x + 1) * self.transform[0] * self.chip_size,
+            self.bbox[3] + (y + 1) * self.transform[4] * self.chip_size,
+        )
 
-        lon_size = (self.item.bbox[2] - self.item.bbox[0]) / self.x_size
-        lat_size = (self.item.bbox[3] - self.item.bbox[1]) / self.y_size
-
-        xmin = self.item.bbox[0] + x * lon_size
-        ymin = self.item.bbox[3] - y * lat_size
-        xmax = self.item.bbox[0] + (x + 1) * lon_size
-        ymax = self.item.bbox[3] - (y + 1) * lat_size
-
-        return f"POLYGON (({xmin} {ymin}, {xmax} {ymin}, {xmax} {ymax}, {xmin} {ymax}, {xmin} {ymin}))"
+        return chip_box.wkt
 
     def create_index(self) -> None:
         index = {
             "chipid": np.empty(self.size, dtype="<U256"),
-            "stac_item": np.empty(self.size, dtype="<U256"),
             "date": np.empty(self.size, dtype="datetime64[D]"),
             "chip_index_x": np.empty(self.size, dtype="uint16"),
             "chip_index_y": np.empty(self.size, dtype="uint16"),
@@ -109,7 +130,6 @@ class ChipIndexer:
                 cloud_cover_percentage, nodata_percentage = self.get_stats(x, y)
 
                 index["chipid"][counter] = f"{self.item.id}-{x}-{y}"
-                index["stac_item"][counter] = self.item.datetime.date()
                 index["date"][counter] = self.item.datetime.date()
                 index["chip_index_x"][counter] = x
                 index["chip_index_y"][counter] = y

@@ -8,8 +8,12 @@ from pystac import Item
 from rasterio import Affine
 from rasterio.io import MemoryFile
 
-from stacchip.indexer import (ChipIndexer, LandsatIndexer, NoStatsChipIndexer,
-                              Sentinel2Indexer)
+from stacchip.indexer import (
+    ChipIndexer,
+    LandsatIndexer,
+    NoStatsChipIndexer,
+    Sentinel2Indexer,
+)
 
 
 def get_ls_mock(nodata: bool = False) -> MemoryFile:
@@ -80,19 +84,19 @@ def test_no_stats_indexer():
     )
     assert (
         min([dat["x"] for dat in index.column("geometry")[0].as_py()[0]])
-        == item.bbox[0]
+        == indexer.transform[2]
     )
     assert (
         max([dat["y"] for dat in index.column("geometry")[0].as_py()[0]])
-        == item.bbox[3]
+        == indexer.transform[5]
     )
     assert (
         max([dat["x"] for dat in index.column("geometry")[-1].as_py()[0]])
-        == item.bbox[2]
+        == indexer.transform[2] + indexer.transform[0] * indexer.x_size * indexer.chip_size
     )
     assert (
         min([dat["y"] for dat in index.column("geometry")[-1].as_py()[0]])
-        == item.bbox[1]
+        == indexer.transform[5] + indexer.transform[4] * indexer.y_size * indexer.chip_size
     )
 
 
@@ -104,7 +108,7 @@ def test_sentinel_2_indexer():
     indexer = Sentinel2Indexer(item)
     assert indexer.shape == [10980, 10980]
     index = indexer.create_index()
-    assert index.shape == (1763, 8)
+    assert index.shape == (1763, 7)
     assert str(index.column("chipid")[0]) == "S2A_T20HNJ_20240311T140636_L2A-1-0"
     assert index.column("cloud_cover_percentage")[0].as_py() == 0.5
 
@@ -122,7 +126,9 @@ def test_landsat_indexer():
         str(index.column("chipid")[0])
         == "LC09_L2SR_086107_20240311_20240312_02_T2_SR-0-0"
     )
-    assert index.shape == (1024, 8)
+    assert index.shape == (1024, 7)
+    assert indexer.x_size == int(8331 / 256)
+    assert indexer.y_size == int(8271 / 256)
 
 
 @mock.patch("stacchip.indexer.rasterio.open", rasterio_open_ls_nodata_mock)
@@ -132,7 +138,7 @@ def test_landsat_indexer_nodata():
     )
     indexer = LandsatIndexer(item)
     index = indexer.create_index()
-    assert index.shape == (1023, 8)
+    assert index.shape == (1023, 7)
     assert (
         str(index.column("chipid")[0])
         == "LC09_L2SR_086107_20240311_20240312_02_T2_SR-1-0"
@@ -140,4 +146,4 @@ def test_landsat_indexer_nodata():
 
     indexer = LandsatIndexer(item, chip_max_nodata=0.95)
     index = indexer.create_index()
-    assert index.shape == (1024, 8)
+    assert index.shape == (1024, 7)

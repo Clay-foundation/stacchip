@@ -34,6 +34,5 @@ dev = [
     "build",
 ]
 
-
 [project.scripts]
 stacchip-sentinel-2 = "stacchip.processors.sentinel_2_processor:process"
