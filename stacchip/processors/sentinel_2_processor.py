@@ -27,6 +27,7 @@ S2_ASSETS = [
     "swir22",
 ]
 ABSOLUTE_CLOUD_COVER_FILTER = 0.75
+PLATFORM_NAME = "sentinel-2-l2a"
 
 quartals = [
     "{year}-01-01/{year}-03-31",
@@ -79,7 +80,7 @@ def process_mgrs_tile(index, mgrs_source, bucket) -> None:
                     }
                     print(f"Copying {copy_source}")
                     new_key = (
-                        f"sentinel-2-l2a/{item.id}/{Path(item.assets[key].href).name}"
+                        f"{PLATFORM_NAME}/{item.id}/{Path(item.assets[key].href).name}"
                     )
                     s3.meta.client.copy(copy_source, bucket, new_key)
                     item.assets[key].href = f"s3://{bucket}/{new_key}"
@@ -90,7 +91,7 @@ def process_mgrs_tile(index, mgrs_source, bucket) -> None:
             # Upload JSON String to an S3 Object
             s3_bucket = s3.Bucket(name=bucket)
             s3_bucket.put_object(
-                Key=f"sentinel-2-l2a/{item.id}/stac_item.json",
+                Key=f"{PLATFORM_NAME}/{item.id}/stac_item.json",
                 Body=data_string,
             )
 
@@ -100,9 +101,10 @@ def process_mgrs_tile(index, mgrs_source, bucket) -> None:
             writer = pa.BufferOutputStream()
             io.write_geoparquet_table(index, writer)
             body = bytes(writer.getvalue())
-
+            # Centralize the index files to make combining them easier later on
             s3_bucket.put_object(
-                Body=body, Key=f"sentinel-2-l2a/{item.id}/chip_index.parquet"
+                Body=body,
+                Key=f"index/{PLATFORM_NAME}/{item.id}/index_{item.id}.parquet",
             )
 
 
