@@ -4,7 +4,6 @@ build-backend = "hatchling.build"
 
 [project]
 name = "stacchip"
-version = "0.1.3"
 authors = [
   { name="Daniel Wiesmann", email="danielwiesmann@developmentseed.org" },
 ]
@@ -36,3 +35,6 @@ dev = [
 
 [project.scripts]
 stacchip-sentinel-2 = "stacchip.processors.sentinel_2_processor:process"
+
+[tool.hatch.version]
+path = "stacchip/__init__.py"
