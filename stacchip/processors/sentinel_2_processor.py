@@ -46,7 +46,7 @@ def process_mgrs_tile(index: int, mgrs_source: str, bucket: str) -> None:
 
     print("MGRS", row["name"])
     random.seed(index)
-    for year in random.sample(range(2018, 2023), 2):
+    for year in random.sample(range(2018, 2024), 2):
         print(f"Year {year}")
         for quartal in quartals:
             print(f"Quartal {quartal.format(year=year)}")
