@@ -1,28 +1,44 @@
-import argparse
 import json
 import math
-from pathlib import Path
 
+import boto3
+import geoarrow.pyarrow.dataset as gads
 import rasterio
-from indexing import get_shape
 from pystac import Item
+from rasterio.enums import Resampling
 from rasterio.windows import Window
 
+from stacchip.indexer import ChipIndexer
 
-def get_chip(chipid, stac_item_name, chip_index_x, chip_index_y):
-    print(chipid, stac_item_name, chip_index_x, chip_index_y)
+ASSET_BLACKLIST = ["scl", "qa_pixel"]
 
-    item = Item.from_file(stac_item_name)
 
-    stac_item_shape = get_shape(item)
-    platform = str(stac_item_name.name).split("-")[0].split("_")[0]
-    assets = ASSET_LOOKUP[platform]
-    norms = NORM_LOOKUP[platform]
+def chip(index: str, row: int) -> dict:
 
-    chip = []
+    ds = gads.dataset(index, format="parquet")
+    table = ds.to_table()
 
-    for key, asset in item.assets.items():
-        if key not in assets:
+    platform = table.column("platform")[row]
+    item_id = table.column("item")[row]
+
+    bucket = "clay-v1-data"
+    s3 = boto3.resource("s3")
+    s3_bucket = s3.Bucket(name=bucket)
+    content_object = s3_bucket.Object(f"{platform}/{item_id}/stac_item.json")
+    file_content = content_object.get()["Body"].read().decode("utf-8")
+    json_content = json.loads(file_content)
+    item = Item.from_dict(json_content)
+
+    indexer = ChipIndexer(item)
+    chip_index_x = table.column("chip_index_x")[row].as_py()
+    chip_index_y = table.column("chip_index_y")[row].as_py()
+
+    stac_item_shape = indexer.shape
+
+    data = {}
+
+    for key, asset in indexer.item.assets.items():
+        if key in ASSET_BLACKLIST:
             continue
 
         with rasterio.open(asset.href) as src:
@@ -46,64 +62,23 @@ def get_chip(chipid, stac_item_name, chip_index_x, chip_index_y):
                 )
 
             chip_window = Window(
-                math.floor(chip_index_y / factor),
-                math.floor(chip_index_x / factor),
-                math.ceil(CHIP_SIZE / factor),
-                math.ceil(CHIP_SIZE / factor),
+                math.floor(chip_index_y * indexer.chip_size / factor),
+                math.floor(chip_index_x * indexer.chip_size / factor),
+                math.ceil(indexer.chip_size / factor),
+                math.ceil(indexer.chip_size / factor),
             )
+
             print(f"Chip window for asset {key} is {chip_window}")
-            bounds = token_bounds(item.bbox, src.shape, chip_window)
-            token = (
-                str(item.datetime.date()),  # Date
-                *norms[key],  # Normalization (mean, std)
-                *norms[key],  # Band def (central wavelength, bandwidth)
-                src.transform[0],  # gsd
-                *bounds,  # Lat/Lon bbox
-                src.read(window=chip_window),
+            pixels = src.read(
+                window=chip_window,
+                out_shape=(src.count, indexer.chip_size, indexer.chip_size),
+                resampling=Resampling.nearest,
             )
-            chip.append(token)
 
-    return chip
+            data[key] = pixels
 
-
-def get_chips_from_index(index: Path, platform: str):
-    print(f"Processing index {index}")
-
-    with open(index) as src:
-        index_data = json.load(src)
-    print(f"Found {len(index_data)} chips to process")
-
-    for row in index_data:
-        stac_item_name = row.pop("stac_item_name")
-
-        # Test with sentinel tile as it is multi-resolution
-        if not stac_item_name.startswith(platform):
-            continue
-        chip = get_chip(stac_item_name=index.parent / "items" / stac_item_name, **row)
-
-        print(stac_item_name)
-        for token in chip:
-            print(token)
+    return data
 
 
-def chip():
-    parser = argparse.ArgumentParser(description="Create Clay v1 tokens.")
-    parser.add_argument(
-        "--index",
-        type=Path,
-        help="The index location, the items are assumed to be in an items subfolder from the index location.",  # noqa: E501
-        required=True,
-    )
-    parser.add_argument(
-        "--platform",
-        type=str,
-        help="Limit items from one platform. Should be one of: sentinel, landsat, nz, naip.",  # noqa: E501
-        required=False,
-    )
-    args = parser.parse_args()
-
-    assert args.index.exists()
-
-    print(args.index)
-
-    get_chips_from_index(args.index, args.platform)
+data = chip("/home/tam/Desktop/output", 23)
+print(data)
