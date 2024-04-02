@@ -9,18 +9,6 @@ from pystac import Item
 from rasterio.windows import Window
 
 
-def token_bounds(bbox, shape, window):
-    x_pixel_size = (bbox[2] - bbox[0]) / shape[1]
-    y_pixel_size = (bbox[3] - bbox[1]) / shape[0]
-
-    return (
-        bbox[0] + window.col_off * x_pixel_size,
-        bbox[1] + window.row_off * y_pixel_size,
-        bbox[0] + (window.col_off + window.width) * x_pixel_size,
-        bbox[1] + (window.row_off + window.height) * y_pixel_size,
-    )
-
-
 def get_chip(chipid, stac_item_name, chip_index_x, chip_index_y):
     print(chipid, stac_item_name, chip_index_x, chip_index_y)
 
@@ -98,7 +86,7 @@ def get_chips_from_index(index: Path, platform: str):
             print(token)
 
 
-if __name__ == "__main__":
+def chip():
     parser = argparse.ArgumentParser(description="Create Clay v1 tokens.")
     parser.add_argument(
         "--index",
