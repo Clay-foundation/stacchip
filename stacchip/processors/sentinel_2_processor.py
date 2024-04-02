@@ -28,7 +28,7 @@ S2_ASSETS = [
 ]
 ABSOLUTE_CLOUD_COVER_FILTER = 0.75
 PLATFORM_NAME = "sentinel-2-l2a"
-
+SCENE_NODATA_LIMIT = 20
 quartals = [
     "{year}-01-01/{year}-03-31",
     "{year}-04-01/{year}-06-30",
@@ -37,7 +37,7 @@ quartals = [
 ]
 
 
-def process_mgrs_tile(index, mgrs_source, bucket) -> None:
+def process_mgrs_tile(index: int, mgrs_source: str, bucket: str) -> None:
     # Prepare resources for the job
     catalog = pystac_client.Client.open(STAC_API)
     s3 = boto3.resource("s3")
@@ -59,7 +59,8 @@ def process_mgrs_tile(index, mgrs_source, bucket) -> None:
                 query={
                     "grid:code": {
                         "eq": f"MGRS-{row['name']}",
-                    }
+                    },
+                    "s2:nodata_pixel_percentage": {"lte": SCENE_NODATA_LIMIT},
                 },
             )
             item = items.item_collection()[0]
@@ -108,7 +109,7 @@ def process_mgrs_tile(index, mgrs_source, bucket) -> None:
             )
 
 
-def process():
+def process() -> None:
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" not in os.environ:
         raise ValueError("AWS_BATCH_JOB_ARRAY_INDEX env var not set")
