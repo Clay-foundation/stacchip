@@ -38,6 +38,7 @@ dev = [
 
 [project.scripts]
 stacchip-sentinel-2 = "stacchip.processors.sentinel_2_processor:process"
+stacchip-merge-index = "stacchip.merger:merge"
 
 [tool.hatch.version]
 path = "stacchip/__init__.py"
