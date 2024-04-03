@@ -5,7 +5,7 @@ from multiprocessing import Pool
 import boto3
 import rasterio
 from numpy.typing import ArrayLike
-from pystac import Asset, Item
+from pystac import Item
 from rasterio.enums import Resampling
 from rasterio.windows import Window
 
