@@ -1,6 +1,23 @@
 # stacchip
 
-Dynamically create image chips from STAC items
+Create a chip index based on STAC items to dynamically create image
+chips for machine learning applications.
+
+## Overview
+
+Stacchip is composed of three steps:
+
+1. Create a stacchip index from a set of STAC items that contain data
+   one wants to use for ML training.
+2. Merge the indexes from each STAC item into a general index
+3. Obtain pixels for any chip in the stacchip index
+
+The mechanism is purposefully kept as generic as possible. The index creation
+is done based on a STAC item alone, no other input is needed. Obtaining image
+data for a chip that is registered in a stacchip index only requires a few
+lines of code.
+
+The following sections briefly describe the different components.
 
 ## The indexer
 
@@ -26,10 +43,47 @@ indexer = LandsatIndexer(item)
 index = indexer.create_index()
 ```
 
+## Merger
+
+The [merger](stacchip/merger.py) utility can be used to merge the STAC item
+level stacchip indices into a single geopqarquet file. This is quite simple
+thanks to parquet dataset partitioning.
+
+## Chipper
+
+The [Chipper](stacchip/chipper.py) class can be used to get pixel values for a single chip from
+a stacchip index. The following code snippet gives an example.
+
+```python
+import geoarrow.pyarrow.dataset as gads
+
+# Load a stacchip index table
+dataset = gads.dataset("/path/to/parquet/index", format="parquet")
+table = dataset.to_table()
+
+# Get data for a single chip
+row = 42
+chipper = Chipper(
+    bucket="clay-v1-data",
+    platform=table.column("platform")[row],
+    item_id = table.column("item")[row],
+    chip_index_x = table.column("chip_index_x")[row].as_py(),
+    chip_index_y = table.column("chip_index_y")[row].as_py()
+)
+data = chipper.chip
+```
+
 ## Processors
 
-stacchip comes with processors that can be used to collect and index
-imagery from multiple data sources.
+To use stacchip for an existing imagery archive, the indexes need to be
+created for each scene or STAC item.
+
+There are stacchip comes with processors that can be used to collect and
+index imagery from multiple data sources. This will be extended as the
+package grows.
+
+Each processor is registered as a command line utility so that it can be
+scaled easily.
 
 ### Sentinel-2
 
@@ -45,6 +99,8 @@ The script uses environment variables to determine all inputs:
 2. The source file for the MGRS tile sample
 3. A target bucket for writing the assets, stac items, and stacchip index.
 
+An example set of environment variables to run this script is:
+
 ```bash
 export AWS_BATCH_JOB_ARRAY_INDEX=0
 export STACCHIP_MGRS_SOURCE=https://clay-mgrs-samples.s3.amazonaws.com/mgrs_sample_v02.fgb
@@ -53,10 +109,11 @@ export STACCHIP_BUCKET=clay-v1-data
 
 ## Batch processing
 
-The following base image can be used for batch processing.
+The following base image can be used for batch processing. Installing the package
+will include the command line utilities for each processor.
 
 ```dockerfile
 FROM python:3.11
 
-RUN pip install https://github.com/Clay-foundation/stacchip/archive/refs/tags/0.1.1.zip
+RUN pip install https://github.com/Clay-foundation/stacchip/archive/refs/heads/main.zip
 ```
