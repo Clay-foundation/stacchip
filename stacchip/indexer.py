@@ -1,4 +1,5 @@
 import warnings
+from functools import cached_property
 from math import floor
 from typing import Tuple
 
@@ -53,40 +54,31 @@ class ChipIndexer:
     def reproject(self, geom) -> str:
         return transform(self._projector, geom)
 
-    _shape = None
-    _transform = None
-
-    @property
-    def transform(self) -> list:
-        if self._transform is None:
-            self.shape()
-        return self._transform
-
-    @property
-    def shape(self) -> Tuple[int, int]:
+    def _get_trsf_or_shape(self, key: str) -> Tuple:
         """
         Get shape of hightest resolution band.
         """
-        if self._shape is None:
-            if "proj:shape" in self.item.properties:
-                self._shape = self.item.properties["proj:shape"]
-                self._transform = self.item.properties["proj:transform"]
-            else:
-                for asset in self.item.assets.values():
-                    if "proj:shape" not in asset.extra_fields:
-                        continue
+        data = None
+        if key in self.item.properties:
+            data = self.item.properties[key]
+        else:
+            for asset in self.item.assets.values():
+                if key not in asset.extra_fields:
+                    continue
+                if data is None or data[0] < asset.extra_fields[key][0]:
+                    data = asset.extra_fields[key]
 
-                    if (
-                        self._shape is None
-                        or self._shape[0] < asset.extra_fields["proj:shape"][0]
-                    ):
-                        self._shape = asset.extra_fields["proj:shape"]
-                        self._transform = asset.extra_fields["proj:transform"]
+        return data
 
-            if self._shape is None:
-                raise ValueError("Could not determine shape and resolution")
+    @cached_property
+    def shape(self) -> Tuple[int, int]:
+        return self._get_trsf_or_shape("proj:shape")
 
-        return self._shape
+    @cached_property
+    def transform(
+        self,
+    ) -> Tuple[float, float, int, float, float, int]:
+        return self._get_trsf_or_shape("proj:transform")
 
     @property
     def x_size(self) -> int:
@@ -100,24 +92,19 @@ class ChipIndexer:
     def size(self) -> int:
         return self.x_size * self.y_size
 
-    _bbox = None
-
     @property
     def bbox(self) -> Tuple[float, float, float, float]:
-        if self._bbox is None:
-            self._bbox = (
-                self.transform[2],
-                self.transform[5] + self.transform[4] * self.shape[0],
-                self.transform[2] + self.transform[0] * self.shape[1],
-                self.transform[5],
-            )
-
-        return self._bbox
+        return (
+            self.transform[2],
+            self.transform[5] + self.transform[4] * self.shape[0],
+            self.transform[2] + self.transform[0] * self.shape[1],
+            self.transform[5],
+        )
 
     def get_stats(self, chip_index_x: int, chip_index_y: int) -> Tuple[float, float]:
         raise NotImplementedError()
 
-    def get_bbox(self, x: int, y: int) -> str:
+    def get_chip_bbox(self, x: int, y: int) -> str:
         chip_box = box(
             self.bbox[0] + x * self.transform[0] * self.chip_size,
             self.bbox[3] + y * self.transform[4] * self.chip_size,
@@ -149,7 +136,7 @@ class ChipIndexer:
                 index["chip_index_y"][counter] = y
                 index["cloud_cover_percentage"][counter] = cloud_cover_percentage
                 index["nodata_percentage"][counter] = nodata_percentage
-                index["geometry"][counter] = self.get_bbox(x, y)
+                index["geometry"][counter] = self.get_chip_bbox(x, y)
 
                 counter += 1
 
@@ -170,18 +157,15 @@ class NoStatsChipIndexer(ChipIndexer):
 
 
 class LandsatIndexer(ChipIndexer):
-    _qa = None
 
-    @property
+    @cached_property
     def qa(self):
-        if self._qa is None:
-            print("Loading qa band")
-            self.item.assets["qa_pixel"].href = self.item.assets[
-                "qa_pixel"
-            ].extra_fields["alternate"]["s3"]["href"]
-            with rasterio.open(self.item.assets["qa_pixel"].href) as src:
-                self._qa = src.read(1)
-        return self._qa
+        print("Loading qa band")
+        self.item.assets["qa_pixel"].href = self.item.assets["qa_pixel"].extra_fields[
+            "alternate"
+        ]["s3"]["href"]
+        with rasterio.open(self.item.assets["qa_pixel"].href) as src:
+            return src.read(1)
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
         qa = self.qa[
@@ -212,18 +196,13 @@ class Sentinel2Indexer(ChipIndexer):
     scl_filter = [1, 3, 8, 9, 10]
     nodata_value = 0
 
-    _scl = None
-
-    @property
+    @cached_property
     def scl(self):
-        if self._scl is None:
-            print("Loading scl band")
-            with rasterio.open(self.item.assets["scl"].href) as src:
-                self._scl = src.read(
-                    out_shape=(1, *self.shape), resampling=Resampling.nearest
-                )[0]
-
-        return self._scl
+        print("Loading scl band")
+        with rasterio.open(self.item.assets["scl"].href) as src:
+            return src.read(out_shape=(1, *self.shape), resampling=Resampling.nearest)[
+                0
+            ]
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
         scl = self.scl[
