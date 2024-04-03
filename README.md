@@ -21,7 +21,7 @@ The following sections briefly describe the different components.
 
 ## The indexer
 
-The indexer class is build to create a chip index based on only a STAC
+The [indexer](stacchip/indexer.py) class is build to create a chip index based on only a STAC
 item as input. The indexer will calculate the number of available chips
 given a chip size. The resulting chip index is returned as a geoparquet
 table.
