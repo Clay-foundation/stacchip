@@ -78,18 +78,18 @@ data = chipper.chip
 To use stacchip for an existing imagery archive, the indexes need to be
 created for each scene or STAC item.
 
-There are stacchip comes with processors that can be used to collect and
-index imagery from multiple data sources. This will be extended as the
-package grows.
+There are stacchip comes with [processors](stacchip/processors/) that
+can be used to collect and index imagery from multiple data sources.
+This will be extended as the package grows.
 
 Each processor is registered as a command line utility so that it can be
 scaled easily.
 
 ### Sentinel-2
 
-The `stacchip-sentinel-2` processor CLi command processes Sentinel-2
-data. It will process MGRS tiles from a list of tiles from a layer
-that can be opened by geopandas.
+The [`stacchip-sentinel-2`](stacchip/processors/sentinel_2_processor.py)
+processor CLi command processes Sentinel-2 data. It will process MGRS
+tiles from a list of tiles from a layer that can be opened by geopandas.
 
 Each MGRS tile will be processed by the row index in the source file.
 
