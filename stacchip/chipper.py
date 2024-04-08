@@ -1,6 +1,5 @@
 import json
 import math
-from multiprocessing import Pool
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -106,7 +105,4 @@ class Chipper:
             key for key in self.indexer.item.assets.keys() if key not in ASSET_BLACKLIST
         ]
 
-        with Pool(len(keys)) as p:
-            data = p.map(self.get_pixels_for_asset, keys)
-
-        return dict(zip(keys, data))
+        return {key: self.get_pixels_for_asset(key) for key in keys}
