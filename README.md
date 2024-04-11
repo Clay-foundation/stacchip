@@ -125,8 +125,8 @@ or Landsat-9, depending on availability and cloud cover.
 
 The script uses environment variables to determine all inputs:
 
-1. The index of geometry layer to be processes from the source file
-2. The source file for the MGRS tile sample
+1. The index of geometry to be processes from the source file
+2. The source file for the source sample file
 3. A target bucket for writing the assets, stac items, and stacchip index.
 
 An example set of environment variables to run this script is:
