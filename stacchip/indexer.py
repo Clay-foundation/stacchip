@@ -144,7 +144,7 @@ class ChipIndexer:
 
         table = pa.table(index)
         chips_count = table.shape[0]
-        table = table.filter(pc.field("nodata_percentage") < self.chip_max_nodata)
+        table = table.filter(pc.field("nodata_percentage") <= self.chip_max_nodata)
         print(
             f"Dropped {chips_count - table.shape[0]}/{chips_count} chips due to nodata above {self.chip_max_nodata}"
         )
