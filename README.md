@@ -78,7 +78,7 @@ data = chipper.chip
 To use stacchip for an existing imagery archive, the indexes need to be
 created for each scene or STAC item.
 
-There are stacchip comes with [processors](stacchip/processors/) that
+Stacchip comes with [processors](stacchip/processors/) that
 can be used to collect and index imagery from multiple data sources.
 This will be extended as the package grows.
 
@@ -93,6 +93,9 @@ tiles from a list of tiles from a layer that can be opened by geopandas.
 
 Each MGRS tile will be processed by the row index in the source file.
 
+For each tile it will process the least cloudy image in each quartal
+from two random years between 2018 and 2023.
+
 The script uses environment variables to determine all inputs:
 
 1. The index of the MGRS tile to be processes from the source file
@@ -104,6 +107,33 @@ An example set of environment variables to run this script is:
 ```bash
 export AWS_BATCH_JOB_ARRAY_INDEX=0
 export STACCHIP_MGRS_SOURCE=https://clay-mgrs-samples.s3.amazonaws.com/mgrs_sample_v02.fgb
+export STACCHIP_BUCKET=clay-v1-data
+```
+
+### Landsat
+
+The [`stacchip-landsat`](stacchip/processors/landsat_processor.py)
+processor CLi command processes Landsat data. It will process a list
+of geometries from a layer that can be opened by geopandas. For each
+row, it will use the centroid of the geometry to search for landsat
+scenes.
+
+For each geometry it will process the least cloudy image in each quartal
+from two random years between 2018 and 2023. For one year it will collect
+L1 data, and for the other year L2 data. The platform is either Landsat-8
+or Landsat-9, depending on availability and cloud cover.
+
+The script uses environment variables to determine all inputs:
+
+1. The index of geometry layer to be processes from the source file
+2. The source file for the MGRS tile sample
+3. A target bucket for writing the assets, stac items, and stacchip index.
+
+An example set of environment variables to run this script is:
+
+```bash
+export AWS_BATCH_JOB_ARRAY_INDEX=0
+export STACCHIP_SAMPLE_SOURCE=https://clay-mgrs-samples.s3.amazonaws.com/mgrs_sample_v02.fgb
 export STACCHIP_BUCKET=clay-v1-data
 ```
 
