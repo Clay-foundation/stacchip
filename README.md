@@ -113,7 +113,7 @@ export STACCHIP_BUCKET=clay-v1-data
 ### Landsat
 
 The [`stacchip-landsat`](stacchip/processors/landsat_processor.py)
-processor CLi command processes Landsat data. It will process a list
+processor CLI command processes Landsat data. It will process a list
 of geometries from a layer that can be opened by geopandas. For each
 row, it will use the centroid of the geometry to search for landsat
 scenes.
@@ -134,6 +134,28 @@ An example set of environment variables to run this script is:
 ```bash
 export AWS_BATCH_JOB_ARRAY_INDEX=0
 export STACCHIP_SAMPLE_SOURCE=https://clay-mgrs-samples.s3.amazonaws.com/mgrs_sample_v02.fgb
+export STACCHIP_BUCKET=clay-v1-data
+```
+
+### NAIP
+
+The [`stacchip-naip`](stacchip/processors/naip_processor.py) processor CLI
+command processes imagery from the National Imagery Program (NAIP).
+
+The sample locations were created using the [Natural Earth](https://www.naturalearthdata.com)
+database as a source. The sample includes all popluated places, protected
+areas and parks, airports, and ports. In addition, we sampled one random point 
+along each river, and one random location within each lake that is registered
+in Natural Earth. Finally, we sampled 4000 random points. All data was 
+filtered to be within the CONUS region.
+
+Similar to the other processors, the input variables are provided using env vars.
+
+An example set of environment variables to run this script is:
+
+```bash
+export AWS_BATCH_JOB_ARRAY_INDEX=0
+export STACCHIP_SAMPLE_SOURCE=https://clay-mgrs-samples.s3.amazonaws.com/clay_v1_naip_sample_natural_earth.fgb
 export STACCHIP_BUCKET=clay-v1-data
 ```
 
