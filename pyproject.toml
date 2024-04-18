@@ -19,6 +19,7 @@ dependencies = [
     "numpy>=1.26.0",
     "boto3>=1.29.0",
     "geopandas>=0.14.1",
+    "rio-stac>=0.9.0",
 ]
 dynamic = [
  "version",
@@ -40,6 +41,7 @@ dev = [
 stacchip-sentinel-2 = "stacchip.processors.sentinel_2_processor:process"
 stacchip-landsat = "stacchip.processors.landsat_processor:process"
 stacchip-naip = "stacchip.processors.naip_processor:process"
+stacchip-linz = "stacchip.processors.linz_processor:process"
 stacchip-merge-index = "stacchip.merger:merge"
 
 [tool.hatch.version]
