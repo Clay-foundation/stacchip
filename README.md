@@ -159,6 +159,24 @@ export STACCHIP_SAMPLE_SOURCE=https://clay-mgrs-samples.s3.amazonaws.com/clay_v1
 export STACCHIP_BUCKET=clay-v1-data
 ```
 
+### LINZ
+
+The [`stacchip-linz`](stacchip/processors/linz_processor.py) processor CLI
+processes data from the New Zealand high resolution open aerial imagery.
+
+As a sample, we randomly select 10% the scenes from a selected set of the
+catalogs. We selected the latest imagery for each of the available regions
+of new zealand. The list of catalogs is in the linz processor file.
+
+Similar to the other processors, the input variables are provided using env vars.
+
+An example set of environment variables to run this script is:
+
+```bash
+export AWS_BATCH_JOB_ARRAY_INDEX=0
+export STACCHIP_BUCKET=clay-v1-data
+```
+
 ## Batch processing
 
 The following base image can be used for batch processing. Installing the package
