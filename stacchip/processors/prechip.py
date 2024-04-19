@@ -10,28 +10,6 @@ import shapely
 
 from stacchip.chipper import Chipper
 
-LS_BAND_FREQUENCIES = {
-    "blue": 1,
-    "green": 2,
-    "red": 3,
-    "nir08": 4,
-    "swir16": 5,
-    "swir22": 6,
-}
-
-S2_BAND_FREQUENCIES = {
-    "blue": 1,
-    "green": 2,
-    "red": 3,
-    "rededge1": 4,
-    "rededge2": 5,
-    "rededge3": 6,
-    "nir": 7,
-    "nir08": 8,
-    "swir16": 9,
-    "swir22": 10,
-}
-
 VERSION = "mode_v1_chipper_v1"
 
 
