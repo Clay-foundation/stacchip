@@ -79,10 +79,6 @@ class Chipper:
                 )
 
             factor = self.indexer.shape[0] / src.height
-            if factor != 1:
-                print(
-                    f"Asset {asset.title} is not at highest resolution using scaling factor of {factor}"  # noqa: E501
-                )
 
             chip_window = Window(
                 math.floor(self.chip_index_x * self.indexer.chip_size / factor),
@@ -91,7 +87,6 @@ class Chipper:
                 math.ceil(self.indexer.chip_size / factor),
             )
 
-            print(f"Chip window for asset {asset.title} is {chip_window}")
             return src.read(
                 window=chip_window,
                 out_shape=(src.count, self.indexer.chip_size, self.indexer.chip_size),
