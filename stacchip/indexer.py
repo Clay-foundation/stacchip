@@ -215,3 +215,26 @@ class Sentinel2Indexer(ChipIndexer):
         nodata_percentage = np.sum(scl == self.nodata_value) / scl.size
 
         return cloud_percentage, nodata_percentage
+
+
+class Sentinel1Indexer(ChipIndexer):
+    nodata_value = 0
+
+    @cached_property
+    def vv(self):
+        print("Loading vv band")
+        with rasterio.open(self.item.assets["vv"].href) as src:
+            return src.read(out_shape=(1, *self.shape), resampling=Resampling.nearest)[
+                0
+            ]
+
+    def get_stats(self, x: int, y: int) -> Tuple[float, float]:
+        vv = self.vv[
+            y * self.chip_size : (y + 1) * self.chip_size,
+            x * self.chip_size : (x + 1) * self.chip_size,
+        ]
+
+
+        nodata_percentage = np.sum(vv == self.nodata_value) / vv.size
+
+        return nodata_percentage
