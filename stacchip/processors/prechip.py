@@ -2,7 +2,7 @@ import datetime
 import math
 import os
 from io import BytesIO
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 from typing import Union
 
 import boto3
