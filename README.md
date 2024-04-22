@@ -187,3 +187,9 @@ FROM python:3.11
 
 RUN pip install https://github.com/Clay-foundation/stacchip/archive/refs/heads/main.zip
 ```
+
+## Prechip
+
+In cases where chips need to be computed in advance, the
+[`stacchip-prechip`](stacchip/processors/naip_processor.py) cli script
+is a helper to create npz files from the chips.
