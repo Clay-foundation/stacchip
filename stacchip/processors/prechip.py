@@ -143,7 +143,7 @@ def process() -> None:
     # Extract chips data for this job
     range_upper_limit = min(table.shape[0], (index + 1) * chips_per_job)
     all_chips = []
-    for row in range(index * CHIPS_PER_BATCH, range_upper_limit):
+    for row in range(index * chips_per_job, range_upper_limit):
         all_chips.append(
             (
                 data_bucket,
