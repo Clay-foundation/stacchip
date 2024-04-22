@@ -116,7 +116,6 @@ def write_chip(
 
 def process() -> None:
 
-    CHIPS_PER_BATCH = 10000
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" not in os.environ:
         raise ValueError("AWS_BATCH_JOB_ARRAY_INDEX env var not set")
@@ -132,6 +131,7 @@ def process() -> None:
     indexpath = os.environ["STACCHIP_INDEXPATH"]
     chip_bucket = os.environ["STACCHIP_CHIP_BUCKET"]
     platform = os.environ.get("STACCHIP_PLATFORM")
+    chips_per_job = os.environ.get("CHIPS_PER_JOB", 1000)
 
     # Open table
     table = da.dataset(indexpath, format="parquet").to_table(
@@ -141,7 +141,7 @@ def process() -> None:
         table = table.filter(pa.compute.field("platform") == platform)
 
     # Extract chips data for this job
-    range_upper_limit = min(table.shape[0], (index + 1) * CHIPS_PER_BATCH)
+    range_upper_limit = min(table.shape[0], (index + 1) * chips_per_job)
     all_chips = []
     for row in range(index * CHIPS_PER_BATCH, range_upper_limit):
         all_chips.append(
@@ -163,5 +163,5 @@ def process() -> None:
     with Pool(cpu_count() * 2) as pl:
         pl.starmap(
             write_chip,
-            all_chips[:50],
+            all_chips,
         )
