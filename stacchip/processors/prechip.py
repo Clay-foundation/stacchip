@@ -130,7 +130,7 @@ def process() -> None:
     indexpath = os.environ["STACCHIP_INDEXPATH"]
     chip_bucket = os.environ["STACCHIP_CHIP_BUCKET"]
     platform = os.environ.get("STACCHIP_PLATFORM")
-    chips_per_job = os.environ.get("CHIPS_PER_JOB", 1000)
+    chips_per_job = int(os.environ.get("CHIPS_PER_JOB", 1000))
 
     # Open table
     table = da.dataset(indexpath, format="parquet").to_table(
