@@ -2,14 +2,14 @@ import datetime
 import math
 import os
 from io import BytesIO
+from multiprocessing import Pool, cpu_count
 from typing import Union
 
 import boto3
 import numpy as np
 import pyarrow as pa
-from multiprocessing import Pool, cpu_count
-from pyarrow import dataset as da
 import shapely
+from pyarrow import dataset as da
 
 from stacchip.chipper import Chipper
 
@@ -46,7 +46,7 @@ def write_chip(
     chip_index_y: str,
 ):
     print(
-        "Writing chip", 
+        "Writing chip",
         data_bucket,
         chip_bucket,
         row,
@@ -115,7 +115,6 @@ def write_chip(
 
 
 def process() -> None:
-
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" not in os.environ:
         raise ValueError("AWS_BATCH_JOB_ARRAY_INDEX env var not set")
