@@ -130,7 +130,8 @@ def process() -> None:
     indexpath = os.environ["STACCHIP_INDEXPATH"]
     chip_bucket = os.environ["STACCHIP_CHIP_BUCKET"]
     platform = os.environ.get("STACCHIP_PLATFORM")
-    chips_per_job = int(os.environ.get("CHIPS_PER_JOB", 1000))
+    chips_per_job = int(os.environ.get("STACCHIP_CHIPS_PER_JOB", 1000))
+    pool_size = int(os.environ.get("STACCHIP_POOL_SIZE", 16))
 
     # Open table
     table = da.dataset(indexpath, format="parquet").to_table(
@@ -156,10 +157,7 @@ def process() -> None:
             )
         )
 
-    # for i in range(5):
-    #     write_chip(*all_chips[i])
-
-    with Pool(cpu_count() * 2) as pl:
+    with Pool(pool_size) as pl:
         pl.starmap(
             write_chip,
             all_chips,
