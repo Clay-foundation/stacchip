@@ -164,9 +164,13 @@ export STACCHIP_BUCKET=clay-v1-data
 The [`stacchip-linz`](stacchip/processors/linz_processor.py) processor CLI
 processes data from the New Zealand high resolution open aerial imagery.
 
-As a sample, we randomly select 10% the scenes from a selected set of the
-catalogs. We selected the latest imagery for each of the available regions
+As a sample, we randomly select 50% the scenes, whith a minimum of 10
+and a maximum of 2000 scenes for each catalog that was included.
+We selected the latest imagery for each of the available regions
 of new zealand. The list of catalogs is in the linz processor file.
+
+We also resample all the imagery to 30cm so that the data
+is consistent.
 
 Similar to the other processors, the input variables are provided using env vars.
 
