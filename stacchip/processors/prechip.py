@@ -101,14 +101,10 @@ def write_chip(
             file=bytes,
             pixels=pixels,
             platform=platform,
-            bands=bands,
-            bounds=bounds,
             lon_norm=lon_norm,
             lat_norm=lat_norm,
-            date=date,
             week_norm=week_norm,
             hour_norm=hour_norm,
-            gsd=abs(chipper.indexer.transform[0]),
         )
         bytes.seek(0)
         client.upload_fileobj(Fileobj=bytes, Bucket=chip_bucket, Key=key)
