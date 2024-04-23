@@ -9,6 +9,7 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import pyproj
 import rasterio
+from numpy.typing import ArrayLike
 from pystac import Item
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
@@ -101,7 +102,7 @@ class ChipIndexer:
             self.transform[5],
         )
 
-    def get_stats(self, chip_index_x: int, chip_index_y: int) -> Tuple[float, float]:
+    def get_stats(self, x: int, y: int) -> Tuple[float, float]:
         raise NotImplementedError()
 
     def get_chip_bbox(self, x: int, y: int) -> str:
@@ -152,8 +153,35 @@ class ChipIndexer:
 
 
 class NoStatsChipIndexer(ChipIndexer):
-    def get_stats(self, chip_index_x: int, chip_index_y: int) -> Tuple[float, float]:
+    def get_stats(self, x: int, y: int) -> Tuple[float, float]:
         return 0.0, 0.0
+
+
+class LinzChipIndexer(ChipIndexer):
+
+    def __init__(
+        self,
+        item: Item,
+        nodata_mask: ArrayLike,
+        chip_size: int = 256,
+        chip_max_nodata: float = 0.5,
+    ) -> None:
+        super().__init__(item, chip_size, chip_max_nodata)
+        self.nodata_mask = nodata_mask
+
+    def get_stats(self, x: int, y: int) -> Tuple[float, float]:
+
+        nodata_percentage = (
+            np.sum(
+                self.nodata_mask[
+                    y * self.chip_size : (y + 1) * self.chip_size,
+                    x * self.chip_size : (x + 1) * self.chip_size,
+                ]
+            )
+            / self.nodata_mask.size
+        )
+
+        return 0.0, nodata_percentage
 
 
 class LandsatIndexer(ChipIndexer):

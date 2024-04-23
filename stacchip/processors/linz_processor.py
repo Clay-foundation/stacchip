@@ -13,7 +13,7 @@ from pystac import Item
 from rasterio.enums import Resampling
 from rio_stac import create_stac_item
 
-from stacchip.indexer import NoStatsChipIndexer
+from stacchip.indexer import LinzChipIndexer
 
 PLATFORM_NAME = "linz"
 
@@ -75,7 +75,7 @@ def get_linz_tiffs(prefix) -> list:
             files.append(s3_object.key)
 
     # Sample a percentage of all scenes
-    sample_size = max(min(int(len(files) / 2), 1500), 10)
+    sample_size = max(min(int(len(files) / 2), 2000), 10)
     print(f"Found {len(files)} scenes for {prefix}, keeping {sample_size}")
     random.seed(42)
     return random.sample(files, sample_size)
@@ -116,6 +116,9 @@ def process_linz_tile(index, bucket):
                 resampling=Resampling.bilinear,
             )
 
+            # Drop alpha band if present
+            data = data[:3]
+
             # scale image transform
             transform = dataset.transform * dataset.transform.scale(
                 (dataset.width / data.shape[-1]), (dataset.height / data.shape[-2])
@@ -128,9 +131,10 @@ def process_linz_tile(index, bucket):
             meta["transform"] = transform
             meta["width"] = data.shape[2]
             meta["height"] = data.shape[1]
+            meta["compress"] = "deflate"
+            meta["count"] = 3
 
         with tempfile.NamedTemporaryFile(mode="w") as temp_file:
-            temp_file.write("This file has a name!")
             with rasterio.open(temp_file.name, "w", **meta) as dst:
                 dst.write(data)
 
@@ -152,7 +156,7 @@ def process_linz_tile(index, bucket):
             Body=data_string,
         )
 
-        indexer = NoStatsChipIndexer(item)
+        indexer = LinzChipIndexer(item, nodata_mask=data[0] == 0)
         index = indexer.create_index()
 
         writer = pa.BufferOutputStream()
