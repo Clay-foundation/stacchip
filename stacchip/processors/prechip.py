@@ -15,6 +15,29 @@ from stacchip.chipper import Chipper
 
 VERSION = "mode_v1_chipper_v1"
 
+S2_BANDS = [
+    "blue",
+    "green",
+    "red",
+    "rededge1",
+    "rededge2",
+    "rededge3",
+    "nir",
+    "nir08",
+    "swir16",
+    "swir22",
+]
+LS_BANDS = [
+    "red",
+    "green",
+    "blue",
+    "nir08",
+    "swir16",
+    "swir22",
+]
+NAIP_BANDS = ["red", "green", "blue", "nir"]
+LINZ_BANDS = ["red", "green", "blue"]
+
 
 def normalize_timestamp(date):
 
@@ -68,16 +91,16 @@ def write_chip(
 
     if platform == "naip":
         pixels = chip["image"]
-        bands = ["red", "green", "blue", "nir"]
+        bands = NAIP_BANDS
     elif platform == "linz":
         pixels = chip["asset"]
-        # Some imagery has an alpha band which we won't keep
-        if pixels.shape[0] != 3:
-            pixels = pixels[:3]
-        bands = ["red", "green", "blue"]
-    elif platform in ["landsat-c2l2-sr", "landsat-c2l1", "sentinel-2-l2a"]:
-        pixels = np.vstack(list(chip.values()))
-        bands = list(chip.keys())
+        bands = LINZ_BANDS
+    elif platform == "sentinel-2-l2a":
+        pixels = np.vstack([chip[band] for band in S2_BANDS])
+        bands = S2_BANDS
+    elif platform in ["landsat-c2l2-sr", "landsat-c2l1"]:
+        pixels = np.vstack([chip[band] for band in LS_BANDS])
+        bands = LS_BANDS
 
     if len(pixels) != len(bands):
         raise ValueError(
@@ -93,14 +116,12 @@ def write_chip(
     lon_norm, lat_norm = normalize_latlon(bounds)
 
     key = f"{VERSION}/{platform}/{date.year}/chip_{row}.npz"
-    # target.parent.mkdir(parents=True, exist_ok=True)
 
     client = boto3.client("s3")
     with BytesIO() as bytes:
         np.savez_compressed(
             file=bytes,
             pixels=pixels,
-            platform=platform,
             lon_norm=lon_norm,
             lat_norm=lat_norm,
             week_norm=week_norm,
