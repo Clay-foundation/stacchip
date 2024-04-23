@@ -1,19 +1,23 @@
 import json
 import os
 import random
+import tempfile
 from pathlib import Path
-from urllib.parse import urlparse
 
 import boto3
 import pyarrow as pa
+import rasterio
 from dateutil import parser
 from geoarrow.pyarrow import io
 from pystac import Item
+from rasterio.enums import Resampling
 from rio_stac import create_stac_item
 
 from stacchip.indexer import NoStatsChipIndexer
 
 PLATFORM_NAME = "linz"
+
+TARGET_RESOLUTION = 0.3
 
 nz_prefixes = [
     "auckland/auckland_2022_0.075m/",
@@ -71,7 +75,7 @@ def get_linz_tiffs(prefix) -> list:
             files.append(s3_object.key)
 
     # Sample a percentage of all scenes
-    sample_size = max(min(int(len(files) / 10), 600), 10)
+    sample_size = max(min(int(len(files) / 2), 1500), 10)
     print(f"Found {len(files)} scenes for {prefix}, keeping {sample_size}")
     random.seed(42)
     return random.sample(files, sample_size)
@@ -93,33 +97,55 @@ def process_linz_tile(index, bucket):
         print(f"Working on {key}")
 
         href = f"s3://nz-imagery/{key}"
-        item = create_stac_item(href, with_proj=True)
 
         original_item = get_original_item(key)
+
+        # For now, resample so we have a constant gsd for all images
+        with rasterio.open(href) as dataset:
+
+            gsd = abs(dataset.transform[0])
+
+            upscale_factor = gsd / TARGET_RESOLUTION
+
+            data = dataset.read(
+                out_shape=(
+                    dataset.count,
+                    int(dataset.height * upscale_factor),
+                    int(dataset.width * upscale_factor),
+                ),
+                resampling=Resampling.bilinear,
+            )
+
+            # scale image transform
+            transform = dataset.transform * dataset.transform.scale(
+                (dataset.width / data.shape[-1]), (dataset.height / data.shape[-2])
+            )
+
+            new_key = f"{PLATFORM_NAME}/{original_item.id}/{Path(href).name}"
+            new_href = f"s3://{bucket}/{new_key}"
+
+            meta = dataset.meta.copy()
+            meta["transform"] = transform
+            meta["width"] = data.shape[2]
+            meta["height"] = data.shape[1]
+
+        with tempfile.NamedTemporaryFile(mode="w") as temp_file:
+            temp_file.write("This file has a name!")
+            with rasterio.open(temp_file.name, "w", **meta) as dst:
+                dst.write(data)
+
+            s3_client = boto3.client("s3")
+            s3_client.upload_file(temp_file.name, bucket, new_key)
+
+        item = create_stac_item(new_href, with_proj=True)
         item.datetime = parser.parse(original_item.properties["start_datetime"])
         item.id = original_item.id
-
-        url = urlparse(href)
-        copy_source = {
-            "Bucket": "nz-imagery",
-            "Key": url.path.lstrip("/"),
-        }
-        print(f"Copying {copy_source}")
-        new_key = f"{PLATFORM_NAME}/{item.id}/{Path(item.assets['asset'].href).name}"
-
-        s3 = boto3.resource("s3")
-        s3.meta.client.copy(
-            copy_source,
-            bucket,
-            new_key,
-        )
-
-        item.assets["asset"].href = f"s3://{bucket}/{new_key}"
 
         # Convert Dictionary to JSON String
         data_string = json.dumps(item.to_dict())
 
         # Upload JSON String to an S3 Object
+        s3 = boto3.resource("s3")
         s3_bucket = s3.Bucket(name=bucket)
         s3_bucket.put_object(
             Key=f"{PLATFORM_NAME}/{item.id}/stac_item.json",
