@@ -15,6 +15,8 @@ from stacchip.chipper import Chipper
 
 VERSION = "mode_v1_chipper_v1"
 
+CUBESIZE = 128
+
 S2_BANDS = [
     "blue",
     "green",
@@ -58,9 +60,33 @@ def normalize_latlon(bounds):
     return (math.sin(lat), math.cos(lat)), (math.sin(lon), math.cos(lon))
 
 
-def write_chip(
+def stack_chips(chips: list, cube_id: int, chip_bucket: str, platform: str):
+    print(f"Writing cube {cube_id}")
+
+    pixels = np.vstack([chip["pixels"] for chip in chips], dtype="float32")
+    lon_norm = np.vstack([chip["lon_norm"] for chip in chips], dtype="float32")
+    lat_norm = np.vstack([chip["lat_norm"] for chip in chips], dtype="float32")
+    week_norm = np.vstack([chip["week_norm"] for chip in chips], dtype="float32")
+    hour_norm = np.vstack([chip["hour_norm"] for chip in chips], dtype="float32")
+
+    key = f"{VERSION}/{platform}/cube_{cube_id}.npz"
+
+    client = boto3.client("s3")
+    with BytesIO() as bytes:
+        np.savez_compressed(
+            file=bytes,
+            pixels=pixels,
+            lon_norm=lon_norm,
+            lat_norm=lat_norm,
+            week_norm=week_norm,
+            hour_norm=hour_norm,
+        )
+        bytes.seek(0)
+        client.upload_fileobj(Fileobj=bytes, Bucket=chip_bucket, Key=key)
+
+
+def get_chip(
     data_bucket: str,
-    chip_bucket: str,
     row: int,
     platform: str,
     item_id: str,
@@ -69,9 +95,8 @@ def write_chip(
     chip_index_y: str,
 ):
     print(
-        "Writing chip",
+        "Getting chip",
         data_bucket,
-        chip_bucket,
         row,
         platform,
         item_id,
@@ -115,23 +140,19 @@ def write_chip(
     bounds = chipper.indexer.get_chip_bbox(chip_index_x, chip_index_y)
     lon_norm, lat_norm = normalize_latlon(bounds)
 
-    key = f"{VERSION}/{platform}/{date.year}/chip_{row}.npz"
-
-    client = boto3.client("s3")
-    with BytesIO() as bytes:
-        np.savez_compressed(
-            file=bytes,
-            pixels=pixels,
-            lon_norm=lon_norm,
-            lat_norm=lat_norm,
-            week_norm=week_norm,
-            hour_norm=hour_norm,
-        )
-        bytes.seek(0)
-        client.upload_fileobj(Fileobj=bytes, Bucket=chip_bucket, Key=key)
+    return {
+        "pixels": pixels,
+        "lon_norm": lon_norm,
+        "lat_norm": lat_norm,
+        "week_norm": week_norm,
+        "hour_norm": hour_norm,
+    }
 
 
 def process() -> None:
+    # # GDAL read optimization
+    # os.environ["GDAL_DISABLE_READDIR_ON_OPEN"] = "YES"
+    # os.environ["CPL_VSIL_CURL_ALLOWED_EXTENSIONS"] = ".tif,.png,.jp2,.tiff"
 
     if "AWS_BATCH_JOB_ARRAY_INDEX" not in os.environ:
         raise ValueError("AWS_BATCH_JOB_ARRAY_INDEX env var not set")
@@ -147,8 +168,8 @@ def process() -> None:
     indexpath = os.environ["STACCHIP_INDEXPATH"]
     chip_bucket = os.environ["STACCHIP_CHIP_BUCKET"]
     platform = os.environ.get("STACCHIP_PLATFORM")
-    chips_per_job = int(os.environ.get("STACCHIP_CHIPS_PER_JOB", 1000))
-    pool_size = int(os.environ.get("STACCHIP_POOL_SIZE", 16))
+    cubes_per_job = int(os.environ.get("STACCHIP_CUBES_PER_JOB", 10))
+    pool_size = int(os.environ.get("STACCHIP_POOL_SIZE", 10))
 
     # Open table
     table = da.dataset(indexpath, format="parquet").to_table(
@@ -157,25 +178,34 @@ def process() -> None:
     if platform:
         table = table.filter(pa.compute.field("platform") == platform)
 
-    # Extract chips data for this job
-    range_upper_limit = min(table.shape[0], (index + 1) * chips_per_job)
-    all_chips = []
-    for row in range(index * chips_per_job, range_upper_limit):
-        all_chips.append(
-            (
-                data_bucket,
-                chip_bucket,
-                row,
-                table.column("platform")[row].as_py(),
-                table.column("item")[row].as_py(),
-                table.column("date")[row].as_py(),
-                table.column("chip_index_x")[row].as_py(),
-                table.column("chip_index_y")[row].as_py(),
-            )
-        )
+    np.random.seed(42)
+    random_rows = np.random.randint(0, len(table), len(table))
 
-    with Pool(pool_size) as pl:
-        pl.starmap(
-            write_chip,
-            all_chips,
-        )
+    for cube_id in range(index * cubes_per_job, (index + 1) * cubes_per_job):
+        random_rows_cube = random_rows[cube_id * CUBESIZE : (cube_id + 1) * CUBESIZE]
+        if len(random_rows_cube) != CUBESIZE:
+            print("Finishing because of incomplete cubes")
+            return
+
+        # Extract chips data for this job
+        all_chips = []
+        for row in random_rows_cube:
+            all_chips.append(
+                (
+                    data_bucket,
+                    row,
+                    table.column("platform")[row].as_py(),
+                    table.column("item")[row].as_py(),
+                    table.column("date")[row].as_py(),
+                    table.column("chip_index_x")[row].as_py(),
+                    table.column("chip_index_y")[row].as_py(),
+                )
+            )
+
+        with Pool(pool_size) as pl:
+            data = pl.starmap(
+                get_chip,
+                all_chips,
+            )
+
+        stack_chips(data, cube_id=cube_id, chip_bucket=chip_bucket, platform=platform)
