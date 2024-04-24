@@ -53,8 +53,8 @@ def process_mgrs_tile(index: int, mgrs_source: str, bucket: str) -> None:
                     "s1:nodata_pixel_percentage": {"lte": SCENE_NODATA_LIMIT},
                 },
             )
-            items = items.item_collections()
-            item = items[0]
+            #items = items.item_collections()
+            item = items.get_items()[0]
 
             for key in list(item.assets.keys()):
                 if key not in S1_ASSETS:
