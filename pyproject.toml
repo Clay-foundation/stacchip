@@ -38,6 +38,7 @@ dev = [
 ]
 
 [project.scripts]
+stacchip-sentinel-1 = "stacchip.processors.sentinel_1_processor:process"
 stacchip-sentinel-2 = "stacchip.processors.sentinel_2_processor:process"
 stacchip-landsat = "stacchip.processors.landsat_processor:process"
 stacchip-naip = "stacchip.processors.naip_processor:process"
