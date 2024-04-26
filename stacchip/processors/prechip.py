@@ -13,7 +13,7 @@ from pyarrow import dataset as da
 
 from stacchip.chipper import Chipper
 
-VERSION = "mode_v1_chipper_v1"
+VERSION = "mode_v1_chipper_v2"
 
 CUBESIZE = 128
 
