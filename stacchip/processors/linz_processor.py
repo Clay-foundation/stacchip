@@ -13,7 +13,7 @@ from pystac import Item
 from rasterio.enums import Resampling
 from rio_stac import create_stac_item
 
-from stacchip.indexer import LinzChipIndexer
+from stacchip.indexer import NoDataMaskChipIndexer
 
 PLATFORM_NAME = "linz"
 
@@ -156,7 +156,7 @@ def process_linz_tile(index, bucket):
             Body=data_string,
         )
 
-        indexer = LinzChipIndexer(item, nodata_mask=data[0] == 0)
+        indexer = NoDataMaskChipIndexer(item, nodata_mask=data[0] == 0)
         index = indexer.create_index()
 
         writer = pa.BufferOutputStream()

@@ -157,7 +157,7 @@ class NoStatsChipIndexer(ChipIndexer):
         return 0.0, 0.0
 
 
-class LinzChipIndexer(ChipIndexer):
+class NoDataMaskChipIndexer(ChipIndexer):
 
     def __init__(
         self,
@@ -171,15 +171,12 @@ class LinzChipIndexer(ChipIndexer):
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
 
-        nodata_percentage = (
-            np.sum(
-                self.nodata_mask[
-                    y * self.chip_size : (y + 1) * self.chip_size,
-                    x * self.chip_size : (x + 1) * self.chip_size,
-                ]
-            )
-            / self.nodata_mask.size
-        )
+        nodata_percentage = np.sum(
+            self.nodata_mask[
+                y * self.chip_size : (y + 1) * self.chip_size,
+                x * self.chip_size : (x + 1) * self.chip_size,
+            ]
+        ) / (self.chip_size**2)
 
         return 0.0, nodata_percentage
 
