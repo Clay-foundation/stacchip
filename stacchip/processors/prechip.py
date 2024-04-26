@@ -63,7 +63,7 @@ def normalize_latlon(bounds):
 def stack_chips(chips: list, cube_id: int, chip_bucket: str, platform: str):
     print(f"Writing cube {cube_id}")
 
-    pixels = np.vstack([chip["pixels"] for chip in chips], dtype="float32")
+    pixels = np.stack([chip["pixels"] for chip in chips], dtype="float32")
     lon_norm = np.vstack([chip["lon_norm"] for chip in chips], dtype="float32")
     lat_norm = np.vstack([chip["lat_norm"] for chip in chips], dtype="float32")
     week_norm = np.vstack([chip["week_norm"] for chip in chips], dtype="float32")
