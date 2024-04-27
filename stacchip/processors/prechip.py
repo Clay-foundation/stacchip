@@ -170,6 +170,7 @@ def process() -> None:
     platform = os.environ.get("STACCHIP_PLATFORM")
     cubes_per_job = int(os.environ.get("STACCHIP_CUBES_PER_JOB", 10))
     pool_size = int(os.environ.get("STACCHIP_POOL_SIZE", 10))
+    chip_max_nodata = int(os.environ.get("STACCHIP_MAX_NODATA", 0.05))
 
     # Open table
     table = da.dataset(indexpath, format="parquet").to_table(
@@ -177,6 +178,13 @@ def process() -> None:
     )
     if platform:
         table = table.filter(pa.compute.field("platform") == platform)
+
+    initial_count = len(table)
+    if chip_max_nodata:
+        table = table.filter(pa.compute.field("nodata_percentage") <= chip_max_nodata)
+    print(
+        f"Dropped {initial_count - len(table)} chips due to nodata filter, keeping {len(table)}"
+    )
 
     np.random.seed(42)
     random_rows = np.random.randint(0, len(table), len(table))
