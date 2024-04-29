@@ -128,6 +128,8 @@ def get_chip(
         pixels = np.vstack([chip[band] for band in LS_BANDS])
         bands = LS_BANDS
     elif platform == "sentinel-1-rtc":
+        if any(band not in chip for band in S1_BANDS):
+            return
         pixels = np.vstack([chip[band] for band in S1_BANDS])
         bands = S1_BANDS
 
@@ -219,5 +221,9 @@ def process() -> None:
                 get_chip,
                 all_chips,
             )
+
+        if None in data:
+            print(f"Not all cubes are complete, skipping stacking for cube {cube_id}")
+            continue
 
         stack_chips(data, cube_id=cube_id, chip_bucket=chip_bucket, platform=platform)
