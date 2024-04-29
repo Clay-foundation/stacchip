@@ -39,6 +39,7 @@ LS_BANDS = [
 ]
 NAIP_BANDS = ["red", "green", "blue", "nir"]
 LINZ_BANDS = ["red", "green", "blue"]
+S1_BANDS = ["vv", "vh"]
 
 
 def normalize_timestamp(date):
@@ -126,6 +127,9 @@ def get_chip(
     elif platform in ["landsat-c2l2-sr", "landsat-c2l1"]:
         pixels = np.vstack([chip[band] for band in LS_BANDS])
         bands = LS_BANDS
+    elif platform == "sentinel-1-rtc":
+        pixels = np.vstack([chip[band] for band in S1_BANDS])
+        bands = S1_BANDS
 
     if len(pixels) != len(bands):
         raise ValueError(
@@ -150,7 +154,7 @@ def get_chip(
 
 
 def process() -> None:
-    # # GDAL read optimization
+    # GDAL read optimization is recommended
     # os.environ["GDAL_DISABLE_READDIR_ON_OPEN"] = "YES"
     # os.environ["CPL_VSIL_CURL_ALLOWED_EXTENSIONS"] = ".tif,.png,.jp2,.tiff"
 
