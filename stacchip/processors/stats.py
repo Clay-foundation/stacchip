@@ -37,8 +37,8 @@ def get_stats_keys(key):
 def process():
     if "STACCHIP_PLATFORM" not in os.environ:
         raise ValueError("STACCHIP_PLATFORM env var not set")
-    pool_size = os.environ.get("STACCHIP_POOL_SIZE", 4)
-    max_cubes = os.environ.get("STACCHIP_MAX_CUBES", 4)
+    pool_size = int(os.environ.get("STACCHIP_POOL_SIZE", 4))
+    max_cubes = int(os.environ.get("STACCHIP_MAX_CUBES", 4))
 
     platform = os.environ.get("STACCHIP_PLATFORM")
     if platform == "naip":
