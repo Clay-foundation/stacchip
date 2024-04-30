@@ -46,6 +46,7 @@ stacchip-naip = "stacchip.processors.naip_processor:process"
 stacchip-linz = "stacchip.processors.linz_processor:process"
 stacchip-merge-index = "stacchip.merger:merge"
 stacchip-prechip = "stacchip.processors.prechip:process"
+stacchip-stats = "stacchip.processors.stats:process"
 
 [tool.hatch.version]
 path = "stacchip/__init__.py"
