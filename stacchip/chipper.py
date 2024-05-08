@@ -25,6 +25,7 @@ class Chipper:
         chip_index_y: int,
         bucket: str = "",
         mountpath: str = "",
+        indexer: ChipIndexer = None,
     ) -> None:
         if mountpath and bucket:
             raise ValueError("Specify either a bucket name or a mountpath")
@@ -34,7 +35,9 @@ class Chipper:
         self.mountpath = Path(mountpath)
         self.is_remote = bool(bucket)
 
-        if self.is_remote:
+        if indexer:
+            self.indexer = indexer
+        elif self.is_remote:
             self.indexer = self.load_indexer_s3(bucket, platform, item_id)
         else:
             self.indexer = self.load_indexer_local(mountpath, platform, item_id)
