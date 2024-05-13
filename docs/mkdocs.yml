@@ -1,0 +1,58 @@
+site_name: Stacchip
+site_description: Dynamically create image chips for earth observation machine learning applications using a custom chip index based on STAC items.
+
+docs_dir: 'src'
+site_dir: 'build'
+
+repo_name: "clay-founcation/stacchip"
+repo_url: "https://github.com/clay-founcation/stacchip"
+edit_uri: "blob/main/docs/src/"
+site_url: "https://clay-foundation.github.io/stacchip/"
+
+nav:
+  - Stacchip: "index.md"
+  - User Guide:
+    - Motivation: "motivation.md"
+    - Indexer: "indexer.md"
+    - Chipper: "chipper.md"
+    - Processors: "processors.md"
+
+plugins:
+  - search
+  - mkdocs-jupyter:
+      include_source: True
+
+theme:
+  name: material
+  palette:
+    primary: indigo
+    scheme: default
+  custom_dir: 'src/overrides'
+  favicon: img/favicon.png
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - codehilite:
+      guess_lang: false
+  - def_list
+  - footnotes
+  - pymdownx.arithmatex
+  - pymdownx.betterem
+  - pymdownx.caret:
+      insert: false
+  - pymdownx.details
+  - pymdownx.emoji
+  - pymdownx.escapeall:
+      hardbreak: true
+      nbsp: true
+  - pymdownx.magiclink:
+      hide_protocol: true
+      repo_url_shortener: true
+  - pymdownx.smartsymbols
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - toc:
+      permalink: true

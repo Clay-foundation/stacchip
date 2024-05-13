@@ -1,6 +1,6 @@
 # stacchip
 
-Dynamically create image chips for eath observation machine learning
+Dynamically create image chips for earth observation machine learning
 applications using a custom chip index based on STAC items.
 
 Get a STAC item, index its contents, and create chips dynamically
