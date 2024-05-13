@@ -113,10 +113,10 @@ chipper = Chipper(
     bucket="clay-v1-data",
     platform=table.column("platform")[row],
     item_id = table.column("item")[row],
-    chip_index_x = table.column("chip_index_x")[row].as_py(),
-    chip_index_y = table.column("chip_index_y")[row].as_py()
 )
-data = chipper.chip
+chip_index_x = table.column("chip_index_x")[row].as_py()
+chip_index_y = table.column("chip_index_y")[row].as_py()
+data = chipper.chip(chip_index_x, chip_index_y)
 ```
 
 

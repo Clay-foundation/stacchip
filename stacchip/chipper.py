@@ -2,6 +2,7 @@ import json
 import math
 from pathlib import Path
 from urllib.parse import urlparse
+from typing import List
 
 import boto3
 import rasterio
@@ -12,28 +13,31 @@ from rasterio.windows import Window
 
 from stacchip.indexer import ChipIndexer
 
-ASSET_BLACKLIST = ["scl", "qa_pixel"]
-
 
 class Chipper:
+
+    """
+    Chipper class
+    """
 
     def __init__(
         self,
         platform: str,
         item_id: str,
-        chip_index_x: int,
-        chip_index_y: int,
         bucket: str = "",
         mountpath: str = "",
         indexer: ChipIndexer = None,
+        asset_blacklist: List[str] = ["scl", "qa_pixel"],
     ) -> None:
+        """
+        Init Chipper class
+        """
         if mountpath and bucket:
             raise ValueError("Specify either a bucket name or a mountpath")
 
-        self.chip_index_x = chip_index_x
-        self.chip_index_y = chip_index_y
         self.mountpath = Path(mountpath)
         self.is_remote = bool(bucket)
+        self.asset_blacklist = asset_blacklist
 
         if indexer:
             self.indexer = indexer
@@ -43,6 +47,9 @@ class Chipper:
             self.indexer = self.load_indexer_local(mountpath, platform, item_id)
 
     def load_indexer_s3(self, bucket: str, platform: str, item_id: str) -> ChipIndexer:
+        """
+        Load stacchip index table from a remote location
+        """
         s3 = boto3.resource("s3")
         s3_bucket = s3.Bucket(name=bucket)
         content_object = s3_bucket.Object(f"{platform}/{item_id}/stac_item.json")
@@ -55,11 +62,16 @@ class Chipper:
     def load_indexer_local(
         self, mountpath: Path, platform: str, item_id: str
     ) -> ChipIndexer:
+        """
+        Load stacchip index table from local file
+        """
         item = Item.from_file(mountpath / Path(f"{platform}/{item_id}/stac_item.json"))
         return ChipIndexer(item)
 
-    def get_pixels_for_asset(self, key: str) -> ArrayLike:
-
+    def get_pixels_for_asset(self, key: str, x: int, y: int) -> ArrayLike:
+        """
+        Extract chip pixel values for one asset
+        """
         asset = self.indexer.item.assets[key]
 
         srcpath = asset.href
@@ -84,8 +96,8 @@ class Chipper:
             factor = self.indexer.shape[0] / src.height
 
             chip_window = Window(
-                math.floor(self.chip_index_x * self.indexer.chip_size / factor),
-                math.floor(self.chip_index_y * self.indexer.chip_size / factor),
+                math.floor(x * self.indexer.chip_size / factor),
+                math.floor(y * self.indexer.chip_size / factor),
                 math.ceil(self.indexer.chip_size / factor),
                 math.ceil(self.indexer.chip_size / factor),
             )
@@ -96,11 +108,12 @@ class Chipper:
                 resampling=Resampling.nearest,
             )
 
-    @property
-    def chip(self) -> dict:
-
+    def chip(self, x: int, y: int) -> dict:
+        """
+        Chip pixel array for the x and y index numbers
+        """
         keys = [
-            key for key in self.indexer.item.assets.keys() if key not in ASSET_BLACKLIST
+            key for key in self.indexer.item.assets.keys() if key not in self.asset_blacklist
         ]
 
-        return {key: self.get_pixels_for_asset(key) for key in keys}
+        return {key: self.get_pixels_for_asset(key, x, y) for key in keys}

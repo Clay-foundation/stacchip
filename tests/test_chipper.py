@@ -40,17 +40,15 @@ def test_no_stats_indexer():
             dst.write(json.dumps(item.to_dict()))
         indexer = NoStatsChipIndexer(item)
         index = indexer.create_index()
-        x = index.column("chip_index_x")[1].as_py()
-        y = index.column("chip_index_y")[2].as_py()
         chipper = Chipper(
             mountpath=mountpath,
             platform="naip",
             item_id="item1",
-            chip_index_x=x,
-            chip_index_y=y,
         )
         assert chipper.is_remote is False
-        chip = chipper.chip
+        x = index.column("chip_index_x")[1].as_py()
+        y = index.column("chip_index_y")[2].as_py()
+        chip = chipper.chip(x, y)
         assert chip["asset"].shape[0] == raster_data.shape[0]
         assert_array_equal(
             chip["asset"][0],
