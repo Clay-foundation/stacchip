@@ -64,4 +64,5 @@ simpler, faster, and less static.
 
 ## License
 
-See [LICENSE](https://github.com/developmentseed/titiler/blob/main/LICENSE)
+This repository is released under an Apache 2.0 license. For more details see
+[LICENSE](https://github.com/clay-foundation/stacchip/blob/main/LICENSE)
