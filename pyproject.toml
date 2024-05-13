@@ -37,6 +37,15 @@ dev = [
     "mock",
     "build",
 ]
+docs = [
+    "nbconvert",
+    "mkdocs",
+    "mkdocs-jupyter",
+    "mkdocs-material",
+    "pygments",
+    "pdocs",
+]
+
 
 [project.scripts]
 stacchip-sentinel-1 = "stacchip.processors.sentinel_1_processor:process"

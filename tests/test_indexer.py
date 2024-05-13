@@ -9,8 +9,12 @@ from rasterio import Affine
 from rasterio.io import MemoryFile
 from shapely import Point
 
-from stacchip.indexer import (ChipIndexer, LandsatIndexer, NoStatsChipIndexer,
-                              Sentinel2Indexer)
+from stacchip.indexer import (
+    ChipIndexer,
+    LandsatIndexer,
+    NoStatsChipIndexer,
+    Sentinel2Indexer,
+)
 
 
 def get_ls_mock(nodata: bool = False) -> MemoryFile:

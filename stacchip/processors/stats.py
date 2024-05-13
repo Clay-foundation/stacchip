@@ -5,8 +5,13 @@ from multiprocessing import Pool
 import boto3
 import numpy as np
 
-from stacchip.processors.prechip import (LINZ_BANDS, LS_BANDS, NAIP_BANDS,
-                                         S1_BANDS, S2_BANDS)
+from stacchip.processors.prechip import (
+    LINZ_BANDS,
+    LS_BANDS,
+    NAIP_BANDS,
+    S1_BANDS,
+    S2_BANDS,
+)
 
 
 def get_stats_keys(key):
