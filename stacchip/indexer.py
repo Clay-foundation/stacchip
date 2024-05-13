@@ -29,9 +29,16 @@ warnings.filterwarnings(
 
 class ChipIndexer:
 
+    """
+    Indexer base class
+    """
+
     def __init__(
         self, item: Item, chip_size: int = 256, chip_max_nodata: float = 0.5
     ) -> None:
+        """
+        Init ChipIndexer
+        """
         self.item = item
         self.chip_size = chip_size
         self.chip_max_nodata = chip_max_nodata
@@ -42,10 +49,16 @@ class ChipIndexer:
         self.setup_projector()
 
     def assert_units_metre(self) -> None:
+        """
+        Ensure input data has meters as units
+        """
         crs = CRS(init=f"EPSG:{self.item.properties['proj:epsg']}")
         assert crs.linear_units == "metre"
 
     def setup_projector(self):
+        """
+        Prepare projection function to project geometries into WGS84
+        """
         wgs84 = pyproj.CRS("EPSG:4326")
         target_crs = pyproj.CRS(f'EPSG:{self.item.properties["proj:epsg"]}')
         self._projector = pyproj.Transformer.from_crs(
@@ -53,11 +66,14 @@ class ChipIndexer:
         ).transform
 
     def reproject(self, geom) -> str:
+        """
+        Reproject a geometry into WGS84
+        """
         return transform(self._projector, geom)
 
     def _get_trsf_or_shape(self, key: str) -> Tuple:
         """
-        Get shape of hightest resolution band.
+        The shape of the hightest resolution band
         """
         data = None
         if key in self.item.properties:
@@ -73,28 +89,52 @@ class ChipIndexer:
 
     @cached_property
     def shape(self) -> Tuple[int, int]:
+        """
+        Shape of the STAC item data
+
+        Obtains the shape of the highest resolution band from
+        all the available bands.
+        """
         return self._get_trsf_or_shape("proj:shape")
 
     @cached_property
     def transform(
         self,
     ) -> Tuple[float, float, int, float, float, int]:
+        """
+        The transform property from the STAC item
+        """
         return self._get_trsf_or_shape("proj:transform")
 
     @property
     def x_size(self) -> int:
+        """
+        Number of tiles vailable in x direction
+        """
         return floor(self.shape[1] / self.chip_size)
 
     @property
     def y_size(self) -> int:
+        """
+        Number of tiles vailable in y direction
+        """
         return floor(self.shape[0] / self.chip_size)
 
     @property
     def size(self) -> int:
+        """
+        Number of tiles in this STAC item
+        """
         return self.x_size * self.y_size
 
     @property
     def bbox(self) -> Tuple[float, float, float, float]:
+        """
+        Bounding box that covers all tiles
+
+        This is different from the bounding box of the STAC item
+        if the tiles don't fit into the number of pixels perfectly.
+        """
         return (
             self.transform[2],
             self.transform[5] + self.transform[4] * self.shape[0],
@@ -103,9 +143,16 @@ class ChipIndexer:
         )
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
+        """
+        A function to write for each indexer that returns nodata and
+        cloud statistics for a chip
+        """
         raise NotImplementedError()
 
     def get_chip_bbox(self, x: int, y: int) -> str:
+        """
+        Bounding box for a chip
+        """
         chip_box = box(
             self.bbox[0] + x * self.transform[0] * self.chip_size,
             self.bbox[3] + y * self.transform[4] * self.chip_size,
@@ -115,7 +162,10 @@ class ChipIndexer:
 
         return self.reproject(chip_box).wkt
 
-    def create_index(self) -> None:
+    def create_index(self) -> pa.Table:
+        """
+        The index for this STAC item
+        """
         index = {
             "chipid": np.empty(self.size, dtype="<U256"),
             "date": np.empty(self.size, dtype="datetime64[D]"),
@@ -153,11 +203,21 @@ class ChipIndexer:
 
 
 class NoStatsChipIndexer(ChipIndexer):
+    """
+    Indexer that assumes that none of the chips have any clouds or nodata
+    """
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
+        """
+        Cloud and nodata percentage for a chip
+        """
         return 0.0, 0.0
 
 
 class NoDataMaskChipIndexer(ChipIndexer):
+    """
+    Chip indexer that takes the nodata mask as input and assumes that
+    there are no clouds in the image
+    """
 
     def __init__(
         self,
@@ -166,11 +226,18 @@ class NoDataMaskChipIndexer(ChipIndexer):
         chip_size: int = 256,
         chip_max_nodata: float = 0.5,
     ) -> None:
+        """
+        Init NoDataMaskChipIndexer
+        """
         super().__init__(item, chip_size, chip_max_nodata)
         self.nodata_mask = nodata_mask
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
+        """
+        Cloud and nodata percentage for a chip
 
+        Assumes there are no cloudy pixels and computes nodata from mask
+        """
         nodata_percentage = np.sum(
             self.nodata_mask[
                 y * self.chip_size : (y + 1) * self.chip_size,
@@ -182,9 +249,15 @@ class NoDataMaskChipIndexer(ChipIndexer):
 
 
 class LandsatIndexer(ChipIndexer):
+    """
+    Chip indexer for Landsat 8 and 9 STAC items
+    """
 
     @cached_property
     def qa(self):
+        """
+        The quality band data for the STAC item
+        """
         print("Loading qa band")
         self.item.assets["qa_pixel"].href = self.item.assets["qa_pixel"].extra_fields[
             "alternate"
@@ -193,6 +266,11 @@ class LandsatIndexer(ChipIndexer):
             return src.read(1)
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
+        """
+        Cloud and nodata percentage for a chip
+
+        Uses the qa band to compute these values.
+        """
         qa = self.qa[
             y * self.chip_size : (y + 1) * self.chip_size,
             x * self.chip_size : (x + 1) * self.chip_size,
@@ -218,11 +296,18 @@ class LandsatIndexer(ChipIndexer):
 
 
 class Sentinel2Indexer(ChipIndexer):
+    """
+    Indexer for Sentinel-2 STAC items
+    """
+
     scl_filter = [1, 3, 8, 9, 10]
     nodata_value = 0
 
     @cached_property
     def scl(self):
+        """
+        The Scene Classification (SCL) band data for the STAC item
+        """
         print("Loading scl band")
         with rasterio.open(self.item.assets["scl"].href) as src:
             return src.read(out_shape=(1, *self.shape), resampling=Resampling.nearest)[
@@ -230,6 +315,11 @@ class Sentinel2Indexer(ChipIndexer):
             ]
 
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
+        """
+        Cloud and nodata percentage for a chip
+
+        Uses the SCL band to compute these values.        
+        """
         scl = self.scl[
             y * self.chip_size : (y + 1) * self.chip_size,
             x * self.chip_size : (x + 1) * self.chip_size,
