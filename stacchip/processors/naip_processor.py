@@ -144,5 +144,3 @@ def process() -> None:
     bucket = os.environ["STACCHIP_BUCKET"]
 
     process_naip_tile(index, sample_source, bucket)
-
-STACCHIP_BUCKET=clay-v1-california-chips STACCHIP_SAMPLE_SOURCE=https://clay-mgrs-samples.s3.amazonaws.com/naip_california_quads.fgb AWS_BATCH_JOB_ARRAY_INDEX=0 
