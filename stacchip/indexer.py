@@ -28,7 +28,6 @@ warnings.filterwarnings(
 
 
 class ChipIndexer:
-
     """
     Indexer base class
     """
@@ -206,6 +205,7 @@ class NoStatsChipIndexer(ChipIndexer):
     """
     Indexer that assumes that none of the chips have any clouds or nodata
     """
+
     def get_stats(self, x: int, y: int) -> Tuple[float, float]:
         """
         Cloud and nodata percentage for a chip
@@ -318,7 +318,7 @@ class Sentinel2Indexer(ChipIndexer):
         """
         Cloud and nodata percentage for a chip
 
-        Uses the SCL band to compute these values.        
+        Uses the SCL band to compute these values.
         """
         scl = self.scl[
             y * self.chip_size : (y + 1) * self.chip_size,

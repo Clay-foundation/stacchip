@@ -47,13 +47,13 @@ def process_mgrs_tile(index: int, mgrs_source: str, bucket: str) -> None:
                 filter={
                     "op": "and",
                     "args": [
-                        {
-                            "op": "s_intersects",
-                            "args": [
-                                {"property": "geometry"},
-                                row.geometry.__geo_interface__,
-                            ],
-                        },
+                        # {
+                        #     "op": "s_intersects",
+                        #     "args": [
+                        #         {"property": "geometry"},
+                        #         row.geometry.__geo_interface__,
+                        #     ],
+                        # },
                         {
                             "op": "anyinteracts",
                             "args": [

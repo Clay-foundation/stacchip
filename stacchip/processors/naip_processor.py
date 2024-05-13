@@ -21,7 +21,7 @@ AWS_S3_URL = (
 PLATFORM_NAME = "naip"
 
 
-def process_naip_tile(index: int, sample_source: str, bucket: str) -> None:
+def process_naip_tile(index: int, sample_source: str, bucket: str, latest_only: bool=False) -> None:
     # Prepare resources for the job
     catalog = pystac_client.Client.open(STAC_API)
     s3 = boto3.resource("s3")
@@ -41,10 +41,13 @@ def process_naip_tile(index: int, sample_source: str, bucket: str) -> None:
         return
 
     latest_item = items.pop()
-    random.seed(index)
-    random_item = random.choice(items)
+    items_to_process = [latest_item]
+    if not latest_only:
+        random.seed(index)
+        random_item = random.choice(items)
+        items_to_process.append(random_item)
 
-    for item in [latest_item, random_item]:
+    for item in items_to_process:
         print(f"Processing item {item.id}")
         for key in list(item.assets.keys()):
             if key != "image":
@@ -141,3 +144,5 @@ def process() -> None:
     bucket = os.environ["STACCHIP_BUCKET"]
 
     process_naip_tile(index, sample_source, bucket)
+
+STACCHIP_BUCKET=clay-v1-california-chips STACCHIP_SAMPLE_SOURCE=https://clay-mgrs-samples.s3.amazonaws.com/naip_california_quads.fgb AWS_BATCH_JOB_ARRAY_INDEX=0 

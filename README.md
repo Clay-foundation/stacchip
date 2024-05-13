@@ -14,7 +14,7 @@ item = stac.search(...)
 index = Indexer(item).create_index()
 
 # Use the index to get RGB array for a specific chip
-chip = Chipper(index, x=23, y=42, bands=["red", "green", "blue"]).chip
+chip = Chipper(index).chip(x=23, y=42)
 ```
 
 ## Motivation
@@ -68,20 +68,6 @@ The [Indexer](stacchip/indexer.py) class is build to create a chip index for
 data registered in a a STAC item. The indexer will calculate the number of available
 chips in a STAC item given a chip size. The resulting chip index is stored as a geoparquet table.
 
-### Nodata and cloud coverage
-
-Earth observation data is not always clean. It comes in scenes that contain
-nodata pixels, and it might contain clouds. Statistics on nodata and cloud cover is  relevant information for model training. Typically a model is trained with limited nodata and cloud pixels.
-
-The indexer therefore needs to be aware of these two variables. However, this information is stored in very different ways for different image sources.
-
-The index also calculates cloud cover and nodata percentages for each tile.
-This is specific for each system. So the base class has to be subclassed
-and the `get_stats` method overridden to produce the right statistics.
-
-
-### Example
-
 The following example creates an index the Landsat-9 STAC item from the tests
 
 ```python
@@ -95,12 +81,29 @@ indexer = LandsatIndexer(item)
 index = indexer.create_index()
 ```
 
+### Nodata and cloud coverage
+
+Earth observation data often comes in scenes that contain
+nodata pixels, and the imagery might contain clouds. Statistics on nodata and cloud cover is  relevant information for model training. Typically a model is trained with limited amounts nodata and cloud pixels.
+
+The indexer therefore needs to be track these two variables so that the modeler can choose how much or how little nodata pixels and cloudy pixels should be passed to the model. However, how this information is stored varies for different image sources.
+
+The indexer class might need adaption for new data sources. In these cases,
+the base class has to be subclassed and the `get_stats` method overridden to produce the right statistics.
+
+The stacchip library has a generic indexer for sources that have neither nodata or cloudy pixels in them. It has one indexer that takes a nodata mask as input, but assumes that there are no cloudy pixels (useful for sentinel-1). It also contains specific indexers for Landsat and Sentinel-2. For more information consult the reference documentation.
+
 ## Chipper
 
-The [Chipper](stacchip/chipper.py) class can be used to get pixel values for a single chip from
-a stacchip index. The following code snippet gives an example.
+The [Chipper](stacchip/chipper.py) class can be used to create chips based on
+an existing stacchip index. 
+
+There are multiple ways to instanciate the chipper class. Either point to a parquete file on S3, to a local parquet file, or pass a geoparquet table object to the instanciator. Once instantiated, any chip can be generated for a chip index, or all the chips can be returned by iterating over the chipper.
+
+The following code snippet gives an example using a local path.
 
 ```python
+from stacchip.chipper import Chipper
 import geoarrow.pyarrow.dataset as gads
 
 # Load a stacchip index table
@@ -118,7 +121,6 @@ chip_index_x = table.column("chip_index_x")[row].as_py()
 chip_index_y = table.column("chip_index_y")[row].as_py()
 data = chipper.chip(chip_index_x, chip_index_y)
 ```
-
 
 ## Merging indexes
 
@@ -147,7 +149,6 @@ ds.write_dataset(
 )
 ```
 
-
 ## Processors
 
 To use stacchip for an existing imagery archive, the indexes need to be
@@ -155,10 +156,10 @@ created for each scene or STAC item.
 
 Stacchip comes with [processors](stacchip/processors/) that
 can be used to collect and index imagery from multiple data sources.
-This will be extended as the package grows.
+This will be extended as the package grows. 
 
 Each processor is registered as a command line utility so that it can be
-scaled easily.
+scaled easily. Note that these processors are created to work well with AWS Batch, but are not dependent on it and can be used locally or anywhere else too.
 
 ### Sentinel-2
 

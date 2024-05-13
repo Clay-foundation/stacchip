@@ -92,8 +92,8 @@ def get_chip(
     platform: str,
     item_id: str,
     date: Union[datetime.date, datetime.datetime],
-    chip_index_x: str,
-    chip_index_y: str,
+    chip_index_x: int,
+    chip_index_y: int,
 ):
     print(
         "Getting chip",
@@ -110,10 +110,8 @@ def get_chip(
         bucket=data_bucket,
         platform=platform,
         item_id=item_id,
-        chip_index_x=chip_index_x,
-        chip_index_y=chip_index_y,
     )
-    chip = chipper.chip
+    chip = chipper.chip(chip_index_x, chip_index_y)
 
     if platform == "naip":
         pixels = chip["image"]

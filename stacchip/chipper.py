@@ -1,8 +1,8 @@
 import json
 import math
 from pathlib import Path
-from urllib.parse import urlparse
 from typing import List
+from urllib.parse import urlparse
 
 import boto3
 import rasterio
@@ -15,7 +15,6 @@ from stacchip.indexer import ChipIndexer
 
 
 class Chipper:
-
     """
     Chipper class
     """
@@ -113,7 +112,9 @@ class Chipper:
         Chip pixel array for the x and y index numbers
         """
         keys = [
-            key for key in self.indexer.item.assets.keys() if key not in self.asset_blacklist
+            key
+            for key in self.indexer.item.assets.keys()
+            if key not in self.asset_blacklist
         ]
 
         return {key: self.get_pixels_for_asset(key, x, y) for key in keys}
