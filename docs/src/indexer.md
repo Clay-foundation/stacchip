@@ -1,4 +1,4 @@
-The [Indexer](stacchip/indexer.py) class is build to create a chip index for
+The [Indexer](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/indexer.py) class is build to create a chip index for
 data registered in a a STAC item. The indexer will calculate the number of available
 chips in a STAC item given a chip size. The resulting chip index is stored as a geoparquet table.
 

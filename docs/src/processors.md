@@ -1,7 +1,7 @@
 To use stacchip for an existing imagery archive, the indexes need to be
 created for each scene or STAC item.
 
-Stacchip comes with [processors](stacchip/processors/) that
+Stacchip comes with [processors](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/processors/) that
 can be used to collect and index imagery from multiple data sources.
 This will be extended as the package grows. 
 
@@ -10,7 +10,7 @@ scaled easily. Note that these processors are created to work well with AWS Batc
 
 ## Sentinel-2
 
-The [`stacchip-sentinel-2`](stacchip/processors/sentinel_2_processor.py)
+The [`stacchip-sentinel-2`](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/processors/sentinel_2_processor.py)
 processor CLi command processes Sentinel-2 data. It will process MGRS
 tiles from a list of tiles from a layer that can be opened by geopandas.
 
@@ -35,7 +35,7 @@ export STACCHIP_BUCKET=clay-v1-data
 
 ## Landsat
 
-The [`stacchip-landsat`](stacchip/processors/landsat_processor.py)
+The [`stacchip-landsat`](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/processors/landsat_processor.py)
 processor CLI command processes Landsat data. It will process a list
 of geometries from a layer that can be opened by geopandas. For each
 row, it will use the centroid of the geometry to search for landsat
@@ -62,7 +62,7 @@ export STACCHIP_BUCKET=clay-v1-data
 
 ## NAIP
 
-The [`stacchip-naip`](stacchip/processors/naip_processor.py) processor CLI
+The [`stacchip-naip`](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/processors/naip_processor.py) processor CLI
 command processes imagery from the National Imagery Program (NAIP).
 
 The sample locations were created using the [Natural Earth](https://www.naturalearthdata.com)
@@ -84,7 +84,7 @@ export STACCHIP_BUCKET=clay-v1-data
 
 ## LINZ
 
-The [`stacchip-linz`](stacchip/processors/linz_processor.py) processor CLI
+The [`stacchip-linz`](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/processors/linz_processor.py) processor CLI
 processes data from the New Zealand high resolution open aerial imagery.
 
 As a sample, we randomly select 50% the scenes, whith a minimum of 10
@@ -118,5 +118,5 @@ RUN pip install https://github.com/Clay-foundation/stacchip/archive/refs/heads/m
 ## Prechip
 
 In cases where chips need to be computed in advance, the
-[`stacchip-prechip`](stacchip/processors/naip_processor.py) cli script
+[`stacchip-prechip`](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/processors/naip_processor.py) cli script
 is a helper to create npz files from the chips.

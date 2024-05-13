@@ -11,11 +11,10 @@ site_url: "https://clay-foundation.github.io/stacchip/"
 
 nav:
   - Stacchip: "index.md"
-  - User Guide:
-    - Motivation: "motivation.md"
-    - Indexer: "indexer.md"
-    - Chipper: "chipper.md"
-    - Processors: "processors.md"
+  - Motivation: "motivation.md"
+  - Indexer: "indexer.md"
+  - Chipper: "chipper.md"
+  - Processors: "processors.md"
 
 plugins:
   - search
@@ -27,8 +26,6 @@ theme:
   palette:
     primary: indigo
     scheme: default
-  custom_dir: 'src/overrides'
-  favicon: img/favicon.png
 
 markdown_extensions:
   - admonition
