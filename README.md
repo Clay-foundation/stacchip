@@ -1,34 +1,86 @@
 # stacchip
 
-Create a chip index based on STAC items to dynamically create image
-chips for machine learning applications.
+Dynamically create image chips for eath observation machine learning
+applications using a custom chip index based on STAC items.
+
+Get a STAC item, index its contents, and create chips dynamically
+like so
+
+```python
+# Get item from an existing STAC catalog
+item = stac.search(...)
+
+# Index all chips that could be derived from the STAC item
+index = Indexer(item).create_index()
+
+# Use the index to get RGB array for a specific chip
+chip = Chipper(index, x=23, y=42, bands=["red", "green", "blue"]).chip
+```
+
+## Motivation
+
+Remote sensing imagery is typically distributed in large files (scenes)
+that typically have the order of 10 thousand of pixels in both the x and y
+directions. This is true for systems like Landsat, Sentinel 1 and 2, and
+aerial imagery such as NAIP.
+
+Machine learning models operate on much smaller image sizes. Many use
+256x256 pixels, and the largest inputs are in the range of 1000 pixels.
+
+This poses a challenge to modelers, as they have to cut the larger scenes
+into pieces before passing them to their models. The smaller image snippets
+are typically referred to as "chips". A term we will use throughout this
+documentation.
+
+Creating imagery chips tends to be a tedious and slow process, and it is
+specific for each model. Models will have different requirements on image
+sizes, datatypes, and the spectral bands to include. A set of chips that
+works for one model might be useless for the next.
+
+Systemizing how chips are tracked, and making the chip creation more dynamic
+is a way to work around these difficulties. This is the goal fo stacchip. It
+presents an approach that leverages cloud optimized technology to make chipping
+simpler, faster, and less static.
 
 ## Overview
 
-Stacchip is composed of three steps:
+Stacchip relies on three cloud oriented technologies. Cloud Optimized Geotiffs
+(COG), Spatio Temporal Asset Catalogs (STAC), and GeoParquet. Instead of pre-creating millions of files of a fixed size, chips are indexed first in tables, and then created dynamically from the index files when needed. The imagery data itsel is kept in its original format and referenced in STAC items.
 
-1. Create a stacchip index from a set of STAC items that contain data
-   one wants to use for ML training.
-2. Merge the indexes from each STAC item into a general index
-3. Obtain pixels for any chip in the stacchip index
+Creating chips with stacchip is composed of two steps:
+
+1. Create a stacchip index from a set of STAC
+2. Dynamically create pixel arrays for any chip in the stacchip index
+
+Indexes can be created separately for different imagery sources, and combined
+into larger indexes when needed. This makes mixing different imagery sources
+simple, and allows for flexibility during the modeling process, as imagery sources
+can be added and removed by only updating the combined index.
 
 The mechanism is purposefully kept as generic as possible. The index creation
 is done based on a STAC item alone, no other input is needed. Obtaining image
 data for a chip that is registered in a stacchip index only requires a few
 lines of code.
 
-The following sections briefly describe the different components.
-
 ## The indexer
 
-The [indexer](stacchip/indexer.py) class is build to create a chip index based on only a STAC
-item as input. The indexer will calculate the number of available chips
-given a chip size. The resulting chip index is returned as a geoparquet
-table.
+The [Indexer](stacchip/indexer.py) class is build to create a chip index for
+data registered in a a STAC item. The indexer will calculate the number of available
+chips in a STAC item given a chip size. The resulting chip index is stored as a geoparquet table.
+
+### Nodata and cloud coverage
+
+Earth observation data is not always clean. It comes in scenes that contain
+nodata pixels, and it might contain clouds. Statistics on nodata and cloud cover is  relevant information for model training. Typically a model is trained with limited nodata and cloud pixels.
+
+The indexer therefore needs to be aware of these two variables. However, this information is stored in very different ways for different image sources.
 
 The index also calculates cloud cover and nodata percentages for each tile.
 This is specific for each system. So the base class has to be subclassed
 and the `get_stats` method overridden to produce the right statistics.
+
+
+### Example
 
 The following example creates an index the Landsat-9 STAC item from the tests
 
@@ -42,12 +94,6 @@ item = Item.from_file(
 indexer = LandsatIndexer(item)
 index = indexer.create_index()
 ```
-
-## Merger
-
-The [merger](stacchip/merger.py) utility can be used to merge the STAC item
-level stacchip indices into a single geopqarquet file. This is quite simple
-thanks to parquet dataset partitioning.
 
 ## Chipper
 
@@ -72,6 +118,35 @@ chipper = Chipper(
 )
 data = chipper.chip
 ```
+
+
+## Merging indexes
+
+Stacchip indexes are geoparquet tables, and as such they can be merged quite
+easily in to a single table. The recommendation is to store each stacchip index
+for a single STAC item in a subfolder, then the files can be merged and the 
+STAC item can be tracked using the folder structure using partitioning feature
+from pyarrow.
+
+The following example assumes that each index file from a single STAC item is
+in a subfolder that is named after the STAC item id.
+
+```python
+from pyarrow import dataset as ds
+
+part = ds.partitioning(field_names=["item_id"])
+data = ds.dataset(
+    "/path/to/stacchip/indices",
+    format="parquet",
+    partitioning=part,
+)
+ds.write_dataset(
+    data,
+    "/path/to/combined-index",
+    format="parquet",
+)
+```
+
 
 ## Processors
 
