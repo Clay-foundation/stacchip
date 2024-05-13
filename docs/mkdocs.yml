@@ -5,7 +5,7 @@ docs_dir: 'src'
 site_dir: 'build'
 
 repo_name: "clay-foundation/stacchip"
-repo_url: "https://github.com/clay-founcation/stacchip"
+repo_url: "https://github.com/clay-foundation/stacchip"
 edit_uri: "blob/main/docs/src/"
 site_url: "https://clay-foundation.github.io/stacchip/"
 
