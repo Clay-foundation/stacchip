@@ -4,7 +4,7 @@ site_description: Dynamically create image chips for earth observation machine l
 docs_dir: 'src'
 site_dir: 'build'
 
-repo_name: "clay-founcation/stacchip"
+repo_name: "clay-foundation/stacchip"
 repo_url: "https://github.com/clay-founcation/stacchip"
 edit_uri: "blob/main/docs/src/"
 site_url: "https://clay-foundation.github.io/stacchip/"
