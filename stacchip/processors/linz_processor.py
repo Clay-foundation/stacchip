@@ -83,7 +83,9 @@ def get_linz_tiffs(prefix) -> list:
 
 def get_original_item(key: str) -> Item:
     s3_resource = boto3.resource("s3")
-    content_object = s3_resource.Object("nz-imagery", key.rstrip("tiff") + "json")
+    content_object = s3_resource.Object(
+        "nz-imagery", key.replace(".tiff", "") + ".json"
+    )
     file_content = content_object.get()["Body"].read().decode("utf-8")
     json_content = json.loads(file_content)
     return Item.from_dict(json_content)

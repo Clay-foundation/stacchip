@@ -21,7 +21,9 @@ AWS_S3_URL = (
 PLATFORM_NAME = "naip"
 
 
-def process_naip_tile(index: int, sample_source: str, bucket: str, latest_only: bool=False) -> None:
+def process_naip_tile(
+    index: int, sample_source: str, bucket: str, latest_only: bool = False
+) -> None:
     # Prepare resources for the job
     catalog = pystac_client.Client.open(STAC_API)
     s3 = boto3.resource("s3")

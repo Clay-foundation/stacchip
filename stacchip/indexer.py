@@ -13,6 +13,7 @@ from numpy.typing import ArrayLike
 from pystac import Item
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
+from shapely import GeometryType
 from shapely.geometry import box
 from shapely.ops import transform
 
@@ -64,17 +65,16 @@ class ChipIndexer:
             target_crs, wgs84, always_xy=True
         ).transform
 
-    def reproject(self, geom) -> str:
+    def reproject(self, geom) -> GeometryType:
         """
         Reproject a geometry into WGS84
         """
         return transform(self._projector, geom)
 
-    def _get_trsf_or_shape(self, key: str) -> Tuple:
+    def _get_trsf_or_shape(self, key: str) -> list:
         """
         The shape of the hightest resolution band
         """
-        data = None
         if key in self.item.properties:
             data = self.item.properties[key]
         else:
@@ -87,7 +87,7 @@ class ChipIndexer:
         return data
 
     @cached_property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> list:
         """
         Shape of the STAC item data
 
@@ -97,9 +97,7 @@ class ChipIndexer:
         return self._get_trsf_or_shape("proj:shape")
 
     @cached_property
-    def transform(
-        self,
-    ) -> Tuple[float, float, int, float, float, int]:
+    def transform(self) -> list:
         """
         The transform property from the STAC item
         """

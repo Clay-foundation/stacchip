@@ -1,7 +1,7 @@
 import json
 import math
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from urllib.parse import urlparse
 
 import boto3
@@ -25,8 +25,8 @@ class Chipper:
         item_id: str,
         bucket: str = "",
         mountpath: str = "",
-        indexer: ChipIndexer = None,
-        asset_blacklist: List[str] = ["scl", "qa_pixel"],
+        indexer: Optional[ChipIndexer] = None,
+        asset_blacklist: Optional[List[str]] = None,
     ) -> None:
         """
         Init Chipper class
@@ -36,14 +36,17 @@ class Chipper:
 
         self.mountpath = Path(mountpath)
         self.is_remote = bool(bucket)
-        self.asset_blacklist = asset_blacklist
+        if asset_blacklist is None:
+            self.asset_blacklist = ["scl", "qa_pixel"]
+        else:
+            self.asset_blacklist = asset_blacklist
 
         if indexer:
             self.indexer = indexer
         elif self.is_remote:
             self.indexer = self.load_indexer_s3(bucket, platform, item_id)
         else:
-            self.indexer = self.load_indexer_local(mountpath, platform, item_id)
+            self.indexer = self.load_indexer_local(self.mountpath, platform, item_id)
 
     def load_indexer_s3(self, bucket: str, platform: str, item_id: str) -> ChipIndexer:
         """
@@ -111,10 +114,9 @@ class Chipper:
         """
         Chip pixel array for the x and y index numbers
         """
-        keys = [
-            key
-            for key in self.indexer.item.assets.keys()
-            if key not in self.asset_blacklist
-        ]
+        keys = []
+        for key in self.indexer.item.assets.keys():
+            if key not in self.asset_blacklist:
+                keys.append(key)
 
         return {key: self.get_pixels_for_asset(key, x, y) for key in keys}
