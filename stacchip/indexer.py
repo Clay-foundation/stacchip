@@ -75,13 +75,14 @@ class ChipIndexer:
         """
         The shape of the hightest resolution band
         """
+        data = []
         if key in self.item.properties:
             data = self.item.properties[key]
         else:
             for asset in self.item.assets.values():
                 if key not in asset.extra_fields:
                     continue
-                if data is None or data[0] < asset.extra_fields[key][0]:
+                if not data or data[0] < asset.extra_fields[key][0]:
                     data = asset.extra_fields[key]
 
         return data
