@@ -1,13 +1,10 @@
-import json
 import math
 from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse
 
-import boto3
 import rasterio
 from numpy.typing import ArrayLike
-from pystac import Item
 from rasterio.enums import Resampling
 from rasterio.windows import Window
 
@@ -21,32 +18,20 @@ class Chipper:
 
     def __init__(
         self,
-        platform: str,
-        item_id: str,
-        bucket: str = "",
+        indexer: ChipIndexer,
         mountpath: str = "",
-        indexer: Optional[ChipIndexer] = None,
         asset_blacklist: Optional[List[str]] = None,
     ) -> None:
         """
         Init Chipper class
         """
-        if mountpath and bucket:
-            raise ValueError("Specify either a bucket name or a mountpath")
-
         self.mountpath = Path(mountpath)
-        self.is_remote = bool(bucket)
+        self.indexer = indexer
+
         if asset_blacklist is None:
             self.asset_blacklist = ["scl", "qa_pixel"]
         else:
             self.asset_blacklist = asset_blacklist
-
-        if indexer:
-            self.indexer = indexer
-        elif self.is_remote:
-            self.indexer = self.load_indexer_s3(bucket, platform, item_id)
-        else:
-            self.indexer = self.load_indexer_local(self.mountpath, platform, item_id)
 
     def __len__(self):
         """
@@ -71,28 +56,6 @@ class Chipper:
             yield self[counter]
             counter += 1
 
-    def load_indexer_s3(self, bucket: str, platform: str, item_id: str) -> ChipIndexer:
-        """
-        Load stacchip index table from a remote location
-        """
-        s3 = boto3.resource("s3")
-        s3_bucket = s3.Bucket(name=bucket)
-        content_object = s3_bucket.Object(f"{platform}/{item_id}/stac_item.json")
-        file_content = content_object.get()["Body"].read().decode("utf-8")
-        json_content = json.loads(file_content)
-        item = Item.from_dict(json_content)
-
-        return ChipIndexer(item)
-
-    def load_indexer_local(
-        self, mountpath: Path, platform: str, item_id: str
-    ) -> ChipIndexer:
-        """
-        Load stacchip index table from local file
-        """
-        item = Item.from_file(mountpath / Path(f"{platform}/{item_id}/stac_item.json"))
-        return ChipIndexer(item)
-
     def get_pixels_for_asset(self, key: str, x: int, y: int) -> ArrayLike:
         """
         Extract chip pixel values for one asset
@@ -100,7 +63,7 @@ class Chipper:
         asset = self.indexer.item.assets[key]
 
         srcpath = asset.href
-        if not self.is_remote:
+        if self.mountpath:
             url = urlparse(srcpath, allow_fragments=False)
             srcpath = self.mountpath / Path(url.path.lstrip("/"))
 

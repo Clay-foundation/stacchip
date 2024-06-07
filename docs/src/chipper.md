@@ -1,25 +1,43 @@
 The [Chipper](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/chipper.py) class can be used to create chips based on
-an existing stacchip index. 
+an existing stacchip index.
 
-There are multiple ways to instanciate the chipper class. Either point to a parquete file on S3, to a local parquet file, or pass a geoparquet table object to the instanciator. Once instantiated, any chip can be generated for a chip index, or all the chips can be returned by iterating over the chipper.
+The chipper class takes as input an Indexer class object. The indexer class can be instantiated using
+the `load_indexer_s3` and `load_indexer_local` utils functions for indexes that have been
+previously created using stacchip processors.
+
+For local stacchip indexes, the mountpath can be passed. Asset links in the STAC items are then patched
+with the local mountpath.
+
+The chipper also has an `asset_blacklist` argument that allows skipping assets
+from the chip retrieval process. This can be used to exclude unnecessary assets
+and through that increase loading speed.
 
 The following code snippet gives an example using a local path.
 
 ```python
-from stacchip.chipper import Chipper
 import geoarrow.pyarrow.dataset as gads
+
+from stacchip.chipper import Chipper
+from stacchip.utils import load_indexer_s3
 
 # Load a stacchip index table
 dataset = gads.dataset("/path/to/parquet/index", format="parquet")
 table = dataset.to_table()
 
-# Get data for a single chip
-row = 42
-chipper = Chipper(
+# Use util to load indexer using data from a 
+# remote S3 bucket.
+indexer = load_indexer_s3(
     bucket="clay-v1-data",
     platform=table.column("platform")[row],
     item_id = table.column("item")[row],
 )
+
+# Instantiate chipper
+chipper = Chipper(indexer)
+
+# Get data for a single chip as registered
+# in row 42 of the index.
+row = 42
 chip_index_x = table.column("chip_index_x")[row].as_py()
 chip_index_y = table.column("chip_index_y")[row].as_py()
 data = chipper.chip(chip_index_x, chip_index_y)
