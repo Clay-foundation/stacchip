@@ -58,3 +58,10 @@ def test_no_stats_indexer():
                 (x * indexer.chip_size) : ((x + 1) * indexer.chip_size),
             ],
         )
+        # Test magic functions
+        assert len(chipper) == indexer.size
+        assert_array_equal(chip["asset"][0], chipper[1]["asset"][0])
+        counter = 0
+        for _chip in chipper:
+            counter += 1
+        assert counter == len(chipper)

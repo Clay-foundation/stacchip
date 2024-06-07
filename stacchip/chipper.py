@@ -48,6 +48,29 @@ class Chipper:
         else:
             self.indexer = self.load_indexer_local(self.mountpath, platform, item_id)
 
+    def __len__(self):
+        """
+        Number of chips available
+        """
+        return self.indexer.size
+
+    def __getitem__(self, index):
+        """
+        Get the chip by single index
+        """
+        y_index = index // self.indexer.x_size
+        x_index = index % self.indexer.x_size
+        return self.chip(x_index, y_index)
+
+    def __iter__(self):
+        """
+        Iterate over chips
+        """
+        counter = 0
+        while counter < self.indexer.size:
+            yield self[counter]
+            counter += 1
+
     def load_indexer_s3(self, bucket: str, platform: str, item_id: str) -> ChipIndexer:
         """
         Load stacchip index table from a remote location
