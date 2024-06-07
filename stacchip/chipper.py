@@ -19,13 +19,13 @@ class Chipper:
     def __init__(
         self,
         indexer: ChipIndexer,
-        mountpath: str = "",
+        mountpath: Optional[str] = None,
         asset_blacklist: Optional[List[str]] = None,
     ) -> None:
         """
         Init Chipper class
         """
-        self.mountpath = Path(mountpath)
+        self.mountpath = None if mountpath is None else Path(mountpath)
         self.indexer = indexer
 
         if asset_blacklist is None:
