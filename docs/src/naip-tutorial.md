@@ -36,11 +36,12 @@ for item in items_list[:10]:
     indexer = NoStatsChipIndexer(item)
 
     # Instanciate the chipper
-    chipper = Chipper(indexer, asset_blacklist=["metadata"])
+    chipper = Chipper(indexer, assets=["image"])
 
     # Get first chip for the "image" asset key
     for chip_id in random.sample(range(0, len(chipper)), 5):
-        chips.append(chipper[chip_id]["image"])
+        x_index, y_index, chip = chipper[chip_id]
+        chips.append(chip["image"])
 
 
 fig, axs = plt.subplots(5, 10, gridspec_kw={'wspace': 0.01, 'hspace': 0.01}, squeeze=True)
