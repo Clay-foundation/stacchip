@@ -13,7 +13,7 @@ from numpy.typing import ArrayLike
 from pystac import Item
 from rasterio.crs import CRS
 from rasterio.enums import Resampling
-from shapely import GeometryType
+from shapely import GeometryType, Polygon
 from shapely.geometry import box
 from shapely.ops import transform
 
@@ -147,7 +147,7 @@ class ChipIndexer:
         """
         raise NotImplementedError()
 
-    def get_chip_bbox(self, x: int, y: int) -> str:
+    def get_chip_bbox(self, x: int, y: int) -> Polygon:
         """
         Bounding box for a chip
         """
@@ -158,7 +158,7 @@ class ChipIndexer:
             self.bbox[3] + (y + 1) * self.transform[4] * self.chip_size,
         )
 
-        return self.reproject(chip_box).wkt
+        return self.reproject(chip_box)
 
     def create_index(self) -> pa.Table:
         """
@@ -185,7 +185,7 @@ class ChipIndexer:
                 index["chip_index_y"][counter] = y
                 index["cloud_cover_percentage"][counter] = cloud_cover_percentage
                 index["nodata_percentage"][counter] = nodata_percentage
-                index["geometry"][counter] = self.get_chip_bbox(x, y)
+                index["geometry"][counter] = self.get_chip_bbox(x, y).wkt
 
                 counter += 1
 
