@@ -63,3 +63,14 @@ data for a chip that is registered in a stacchip index only requires a few
 lines of code.
 
 For more information, please consult the [documentation](https://clay-foundation.github.io/stacchip/)
+
+
+## Build and release
+
+The following steps to release the latest version
+
+```bash
+python -m build
+python3 -m twine upload --repository testpypi dist/*
+python3 -m twine upload --repository pypi dist/*
+```
