@@ -8,10 +8,10 @@ from typing import Union
 import boto3
 import numpy as np
 import pyarrow as pa
-import shapely
 from pyarrow import dataset as da
 
 from stacchip.chipper import Chipper
+from stacchip.utils import load_indexer_s3
 
 VERSION = "mode_v1_chipper_v2"
 
@@ -51,7 +51,6 @@ def normalize_timestamp(date):
 
 
 def normalize_latlon(bounds):
-    bounds = shapely.from_wkt(bounds).bounds
     lon = bounds[0] + (bounds[2] - bounds[0]) / 2
     lat = bounds[1] + (bounds[3] - bounds[1]) / 2
 
@@ -106,11 +105,13 @@ def get_chip(
         chip_index_y,
     )
 
-    chipper = Chipper(
+    indexer = load_indexer_s3(
         bucket=data_bucket,
         platform=platform,
         item_id=item_id,
     )
+    chipper = Chipper(indexer)
+
     chip = chipper.chip(chip_index_x, chip_index_y)
 
     if platform == "naip":
@@ -141,7 +142,7 @@ def get_chip(
         date = datetime.datetime(date.year, date.month, date.day, 12)
     week_norm, hour_norm = normalize_timestamp(date)
 
-    bounds = chipper.indexer.get_chip_bbox(chip_index_x, chip_index_y)
+    bounds = chipper.indexer.get_chip_bbox(chip_index_x, chip_index_y).bounds
     lon_norm, lat_norm = normalize_latlon(bounds)
 
     return {
@@ -171,7 +172,7 @@ def process() -> None:
     data_bucket = os.environ["STACCHIP_DATA_BUCKET"]
     indexpath = os.environ["STACCHIP_INDEXPATH"]
     chip_bucket = os.environ["STACCHIP_CHIP_BUCKET"]
-    platform = os.environ.get("STACCHIP_PLATFORM")
+    platform = os.environ.get("STACCHIP_PLATFORM", "")
     cubes_per_job = int(os.environ.get("STACCHIP_CUBES_PER_JOB", 10))
     pool_size = int(os.environ.get("STACCHIP_POOL_SIZE", 10))
     chip_max_nodata = int(os.environ.get("STACCHIP_MAX_NODATA", 0.05))
