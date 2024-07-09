@@ -15,6 +15,9 @@ nav:
   - Chipper: "chipper.md"
   - Processors: "processors.md"
   - Tutorial: "naip-tutorial.md"
+  - API:
+    - "api/stacchip/chipper.md"
+    - "api/stacchip/indexer.md"
 
 plugins:
   - search
