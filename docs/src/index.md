@@ -17,6 +17,14 @@ index = Indexer(item).create_index()
 chip = Chipper(index).chip(x=23, y=42)
 ```
 
+## Installation
+
+Stacchip is available on pypi
+
+```bash
+pip install stacchip
+```
+
 ## Overview
 
 Stacchip relies on three cloud oriented technologies. Cloud Optimized Geotiffs

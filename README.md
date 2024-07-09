@@ -17,6 +17,14 @@ index = Indexer(item).create_index()
 chip = Chipper(index).chip(x=23, y=42)
 ```
 
+## Installation
+
+Stacchip is available on pypi
+
+```bash
+pip install stacchip
+```
+
 ## Motivation
 
 Remote sensing imagery is typically distributed in large files (scenes)
