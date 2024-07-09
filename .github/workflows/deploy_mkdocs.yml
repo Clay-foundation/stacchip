@@ -4,11 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      # Only rebuild website when docs have changed
-      - 'README.md'
-      - 'docs/**'
-      - '.github/workflows/deploy_mkdocs.yml'
 
 jobs:
   build:
