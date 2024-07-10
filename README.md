@@ -78,6 +78,11 @@ For more information, please consult the [documentation](https://clay-foundation
 The following steps to release the latest version
 
 ```bash
+tag=0.1.34
+hatch version $tag
+git commit -am "Bump version number"
+git tag $tag
+git push origin $tag
 python -m build
 python3 -m twine upload --repository testpypi dist/*
 python3 -m twine upload --repository pypi dist/*
