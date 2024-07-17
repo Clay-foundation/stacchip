@@ -1,5 +1,10 @@
 # Stacchip change log
 
+## 0.1.34
+
+- Add option to manually specify indexer shape. Some STAC items
+  may not have the property `proj:shape` specified.
+
 ## 0.1.33
 
 - Breaking change: `get_chip_bbox` returns shapely polygon instead of wkt
