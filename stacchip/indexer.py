@@ -84,6 +84,8 @@ class ChipIndexer:
                     continue
                 if not data or data[0] < asset.extra_fields[key][0]:
                     data = asset.extra_fields[key]
+        if not data:
+            raise ValueError("Could not determine {key} for this STAC item")
 
         return data
 
