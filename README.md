@@ -81,6 +81,7 @@ The following steps to release the latest version
 tag=0.1.34
 hatch version $tag
 git commit -am "Bump version number"
+git push
 git tag $tag
 git push origin $tag
 python -m build
