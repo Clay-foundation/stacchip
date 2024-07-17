@@ -145,3 +145,13 @@ def test_landsat_indexer_nodata():
     indexer = LandsatIndexer(item, chip_max_nodata=0.95)
     index = indexer.create_index()
     assert index.shape == (1024, 7)
+
+
+def test_indexer_manual_shape():
+    item = Item.from_file(
+        "tests/data/landsat-c2l2-sr-LC09_L2SR_086107_20240311_20240312_02_T2_SR.json"
+    )
+    indexer = NoStatsChipIndexer(item, shape=[230, 420], chip_size=100)
+    assert indexer.shape == [230, 420]
+    assert indexer.y_size == 2
+    assert indexer.x_size == 4

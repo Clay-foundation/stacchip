@@ -34,7 +34,11 @@ class ChipIndexer:
     """
 
     def __init__(
-        self, item: Item, chip_size: int = 256, chip_max_nodata: float = 0.5
+        self,
+        item: Item,
+        chip_size: int = 256,
+        chip_max_nodata: float = 0.5,
+        shape=None,
     ) -> None:
         """
         Init ChipIndexer
@@ -42,6 +46,7 @@ class ChipIndexer:
         self.item = item
         self.chip_size = chip_size
         self.chip_max_nodata = chip_max_nodata
+        self._shape = shape
 
         assert self.item.ext.has("proj")
 
@@ -97,7 +102,10 @@ class ChipIndexer:
         Obtains the shape of the highest resolution band from
         all the available bands.
         """
-        return self._get_trsf_or_shape("proj:shape")
+        if self._shape is not None:
+            return self._shape
+        else:
+            return self._get_trsf_or_shape("proj:shape")
 
     @cached_property
     def transform(self) -> list:
