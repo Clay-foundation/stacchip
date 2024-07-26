@@ -104,6 +104,23 @@ export AWS_BATCH_JOB_ARRAY_INDEX=0
 export STACCHIP_BUCKET=clay-v1-data
 ```
 
+## MODIS
+
+The [`stacchip-modis`](https://github.com/Clay-foundation/stacchip/blob/main/stacchip/processors/modis_processor.py) processor CLI
+processes data from the MODIS archive. The modis scenes are reprojected to
+the web mercator projection, and stored in S3. Then the indexer will create
+one index table per modis scene. We use 233 modis SIN grid tiles, with 4 random
+dates of 4 years of data for each SIN grid tile.
+
+Similar to the other processors, the input variables are provided using env vars.
+
+An example set of environment variables to run this script is:
+
+```bash
+export AWS_BATCH_JOB_ARRAY_INDEX=0
+export STACCHIP_BUCKET=clay-v1-data
+```
+
 ## Batch processing
 
 The following base image can be used for batch processing. Installing the package
