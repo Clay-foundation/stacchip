@@ -84,6 +84,7 @@ git commit -am "Bump version number"
 git push
 git tag $tag
 git push origin $tag
+rm -rf dist
 python -m build
 python3 -m twine upload --repository testpypi dist/*
 python3 -m twine upload --repository pypi dist/*
