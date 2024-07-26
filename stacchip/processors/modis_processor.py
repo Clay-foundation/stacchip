@@ -286,12 +286,12 @@ def process_modis_tile(
     for year in [2018, 2020, 2022, 2023]:
         # Sample four months randomly
         random.seed(i * j * year)
-        months = random.sample(range(12), 4)
+        months = random.sample(range(1, 13), 4)
         for month in months:
             # Compute date range for this month
-            start, end = calendar.monthrange(year, month)
+            end = calendar.monthrange(year, month)[1]
             timerange = (
-                f"{year}-{str(month).zfill(2)}-{str(start).zfill(2)}/"
+                f"{year}-{str(month).zfill(2)}-01/"
                 f"{year}-{str(month).zfill(2)}-{str(end).zfill(2)}"
             )
             # Query catalog
