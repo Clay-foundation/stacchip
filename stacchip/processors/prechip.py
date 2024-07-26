@@ -40,6 +40,15 @@ LS_BANDS = [
 NAIP_BANDS = ["red", "green", "blue", "nir"]
 LINZ_BANDS = ["red", "green", "blue"]
 S1_BANDS = ["vv", "vh"]
+MODIS_BANDS = [
+    "sur_refl_b01",
+    "sur_refl_b02",
+    "sur_refl_b03",
+    "sur_refl_b04",
+    "sur_refl_b05",
+    "sur_refl_b06",
+    "sur_refl_b07",
+]
 
 
 def normalize_timestamp(date):
@@ -131,6 +140,9 @@ def get_chip(
             return
         pixels = np.vstack([chip[band] for band in S1_BANDS])
         bands = S1_BANDS
+    elif platform == "modis":
+        pixels = np.vstack([chip[band] for band in MODIS_BANDS])
+        bands = MODIS_BANDS
 
     if len(pixels) != len(bands):
         raise ValueError(
@@ -179,7 +191,14 @@ def process() -> None:
 
     # Open table
     table = da.dataset(indexpath, format="parquet").to_table(
-        columns=["chipid", "platform", "item", "date", "chip_index_x", "chip_index_y"]
+        columns=[
+            "chipid",
+            "platform",
+            "item_id",
+            "date",
+            "chip_index_x",
+            "chip_index_y",
+        ]
     )
     if platform:
         table = table.filter(pa.compute.field("platform") == platform)
@@ -208,7 +227,7 @@ def process() -> None:
                     data_bucket,
                     row,
                     table.column("platform")[row].as_py(),
-                    table.column("item")[row].as_py(),
+                    table.column("item_id")[row].as_py(),
                     table.column("date")[row].as_py(),
                     table.column("chip_index_x")[row].as_py(),
                     table.column("chip_index_y")[row].as_py(),

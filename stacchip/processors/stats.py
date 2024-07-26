@@ -8,6 +8,7 @@ import numpy as np
 from stacchip.processors.prechip import (
     LINZ_BANDS,
     LS_BANDS,
+    MODIS_BANDS,
     NAIP_BANDS,
     S1_BANDS,
     S2_BANDS,
@@ -18,6 +19,8 @@ def get_stats_keys(key):
     print(f"Processing {key}")
     if "sentinel-1-rtc" in key:
         nodata = -32768
+    if "modis" in key:
+        nodata = -28672
     else:
         nodata = 0
 
@@ -56,6 +59,8 @@ def process():
         bands = LS_BANDS
     elif platform == "sentinel-1-rtc":
         bands = S1_BANDS
+    elif platform == "modis":
+        bands = MODIS_BANDS
     else:
         raise ValueError(f"Platform {platform} not found")
 
