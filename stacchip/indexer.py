@@ -57,17 +57,27 @@ class ChipIndexer:
         """
         Ensure input data has meters as units
         """
-        crs = CRS(init=f"EPSG:{self.item.properties['proj:epsg']}")
-        assert crs.linear_units == "metre"
+        assert self.crs.linear_units.lower() in ["metre", "meter"]
+
+    @property
+    def crs(self) -> CRS:
+        """
+        Get coordinate reference system for the assets in this index
+        """
+        if self.item.properties.get("proj:epsg", None):
+            return CRS.from_epsg(self.item.properties["proj:epsg"])
+        elif "proj:wkt2" in self.item.properties:
+            return CRS.from_string(self.item.properties["proj:wkt2"])
+        else:
+            raise ValueError("Could not identify CRS of source files")
 
     def setup_projector(self):
         """
         Prepare projection function to project geometries into WGS84
         """
         wgs84 = pyproj.CRS("EPSG:4326")
-        target_crs = pyproj.CRS(f'EPSG:{self.item.properties["proj:epsg"]}')
         self._projector = pyproj.Transformer.from_crs(
-            target_crs, wgs84, always_xy=True
+            self.crs, wgs84, always_xy=True
         ).transform
 
     def reproject(self, geom) -> GeometryType:
@@ -337,5 +347,46 @@ class Sentinel2Indexer(ChipIndexer):
         cloud_percentage = int(np.isin(scl, self.scl_filter).sum()) / scl.size
 
         nodata_percentage = np.sum(scl == self.nodata_value) / scl.size
+
+        return cloud_percentage, nodata_percentage
+
+
+class ModisIndexer(ChipIndexer):
+    """
+    Indexer for MODIS STAC items
+    """
+
+    @cached_property
+    def quality(self):
+        """
+        The Quality band data for the STAC item
+        """
+        print("Loading quality band")
+        with rasterio.open(self.item.assets["sur_refl_qc_500m"].href) as src:
+            return src.read(out_shape=(1, *self.shape), resampling=Resampling.nearest)[
+                0
+            ]
+
+    def get_stats(self, x: int, y: int) -> Tuple[float, float]:
+        """
+        Cloud and nodata percentage for a chip
+        """
+        qa = self.quality[
+            y * self.chip_size : (y + 1) * self.chip_size,
+            x * self.chip_size : (x + 1) * self.chip_size,
+        ]
+        byte1 = np.array(1 << 0, dtype=qa.dtype)
+        byte2 = np.array(1 << 1, dtype=qa.dtype)
+        b1mask = np.bitwise_and(qa, byte1)
+        b2mask = np.bitwise_and(qa, byte2)
+
+        # Clouds are flagged as 10 in the first two bytes, nodata is flagged
+        # as 11 in the first two bytes. Extracte from table 10 in
+        # https://lpdaac.usgs.gov/documents/925/MOD09_User_Guide_V61.pdf
+        cloud_mask = np.logical_and(b1mask, np.logical_not(b2mask))
+        nodata_mask = np.logical_and(b1mask, b2mask)
+
+        nodata_percentage = np.sum(nodata_mask) / nodata_mask.size
+        cloud_percentage = np.sum(cloud_mask) / cloud_mask.size
 
         return cloud_percentage, nodata_percentage

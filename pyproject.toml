@@ -54,6 +54,7 @@ stacchip-sentinel-2 = "stacchip.processors.sentinel_2_processor:process"
 stacchip-landsat = "stacchip.processors.landsat_processor:process"
 stacchip-naip = "stacchip.processors.naip_processor:process"
 stacchip-linz = "stacchip.processors.linz_processor:process"
+stacchip-modis = "stacchip.processors.modis_processor:process"
 stacchip-prechip = "stacchip.processors.prechip:process"
 stacchip-stats = "stacchip.processors.stats:process"
 
