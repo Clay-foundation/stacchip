@@ -112,7 +112,7 @@ will include the command line utilities for each processor.
 ```dockerfile
 FROM python:3.11
 
-RUN pip install https://github.com/Clay-foundation/stacchip/archive/refs/heads/main.zip
+RUN pip install stacchip
 ```
 
 ## Prechip
