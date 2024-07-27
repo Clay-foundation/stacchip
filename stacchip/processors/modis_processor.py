@@ -1,7 +1,6 @@
 import calendar
 import json
 import os
-import random
 import tempfile
 from datetime import datetime
 from pathlib import Path
@@ -283,11 +282,8 @@ def process_modis_tile(
     i, j = SIN_GRID_TILES[index]
 
     items_to_process = []
-    for year in [2018, 2020, 2022, 2023]:
-        # Sample four months randomly
-        random.seed(i * j * year)
-        months = random.sample(range(1, 13), 4)
-        for month in months:
+    for year in range(2018, 2024):
+        for month in range(1, 13):
             # Compute date range for this month
             end = calendar.monthrange(year, month)[1]
             timerange = (
