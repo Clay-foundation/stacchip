@@ -187,7 +187,7 @@ def process() -> None:
     platform = os.environ.get("STACCHIP_PLATFORM", "")
     cubes_per_job = int(os.environ.get("STACCHIP_CUBES_PER_JOB", 10))
     pool_size = int(os.environ.get("STACCHIP_POOL_SIZE", 10))
-    chip_max_nodata = int(os.environ.get("STACCHIP_MAX_NODATA", 0.05))
+    chip_max_nodata = float(os.environ.get("STACCHIP_MAX_NODATA", 0.05))
 
     # Open table
     table = da.dataset(indexpath, format="parquet").to_table(
