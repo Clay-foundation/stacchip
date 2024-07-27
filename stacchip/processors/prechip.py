@@ -198,6 +198,7 @@ def process() -> None:
             "date",
             "chip_index_x",
             "chip_index_y",
+            "nodata_percentage",
         ]
     )
     if platform:
