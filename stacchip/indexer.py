@@ -100,7 +100,7 @@ class ChipIndexer:
                 if key not in asset.extra_fields:
                     continue
                 # Get largest shape or smallest transform (scaling).
-                if 'shape' in key:
+                if "shape" in key:
                     if not data or data[0] < asset.extra_fields[key][0]:
                         data = asset.extra_fields[key]
                 else:
