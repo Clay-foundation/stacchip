@@ -68,6 +68,8 @@ class ChipIndexer:
             return CRS.from_epsg(self.item.properties["proj:epsg"])
         elif "proj:wkt2" in self.item.properties:
             return CRS.from_string(self.item.properties["proj:wkt2"])
+        elif "proj:code" in self.item.properties:
+            return CRS.from_string(self.item.properties["proj:code"])
         else:
             raise ValueError("Could not identify CRS of source files")
 
