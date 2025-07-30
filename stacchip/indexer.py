@@ -68,6 +68,8 @@ class ChipIndexer:
             return CRS.from_epsg(self.item.properties["proj:epsg"])
         elif "proj:wkt2" in self.item.properties:
             return CRS.from_string(self.item.properties["proj:wkt2"])
+        elif "proj:code" in self.item.properties:
+            return CRS.from_string(self.item.properties["proj:code"])
         else:
             raise ValueError("Could not identify CRS of source files")
 
@@ -97,8 +99,14 @@ class ChipIndexer:
             for asset in self.item.assets.values():
                 if key not in asset.extra_fields:
                     continue
-                if not data or data[0] < asset.extra_fields[key][0]:
-                    data = asset.extra_fields[key]
+                # Get largest shape or smallest transform (scaling).
+                if "shape" in key:
+                    if not data or data[0] < asset.extra_fields[key][0]:
+                        data = asset.extra_fields[key]
+                else:
+                    if not data or data[0] > asset.extra_fields[key][0]:
+                        data = asset.extra_fields[key]
+
         if not data:
             raise ValueError("Could not determine {key} for this STAC item")
 
