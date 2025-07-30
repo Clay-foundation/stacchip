@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://clay-foundation.github.io/stacchip/</loc>
+         <lastmod>2025-07-30</lastmod>
+    </url>
+    <url>
+         <loc>https://clay-foundation.github.io/stacchip/chipper/</loc>
+         <lastmod>2025-07-30</lastmod>
+    </url>
+    <url>
+         <loc>https://clay-foundation.github.io/stacchip/indexer/</loc>
+         <lastmod>2025-07-30</lastmod>
+    </url>
+    <url>
+         <loc>https://clay-foundation.github.io/stacchip/naip-tutorial/</loc>
+         <lastmod>2025-07-30</lastmod>
+    </url>
+    <url>
+         <loc>https://clay-foundation.github.io/stacchip/processors/</loc>
+         <lastmod>2025-07-30</lastmod>
+    </url>
+    <url>
+         <loc>https://clay-foundation.github.io/stacchip/api/stacchip/chipper/</loc>
+         <lastmod>2025-07-30</lastmod>
+    </url>
+    <url>
+         <loc>https://clay-foundation.github.io/stacchip/api/stacchip/indexer/</loc>
+         <lastmod>2025-07-30</lastmod>
+    </url>
+</urlset>
